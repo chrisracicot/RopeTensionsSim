@@ -1,0 +1,176 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: #111;
+    color: #eee;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    overflow: hidden;
+    /* Prevent scrolling on canvas */
+}
+
+#game-container {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: row;
+    /* Side by side */
+}
+
+#canvas-wrapper {
+    flex: 1;
+    /* Take remaining space */
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#game-canvas {
+    background-color: #1e222b;
+    /* Dimensions handled in JS, but ensure it scales if needed */
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
+    cursor: crosshair;
+}
+
+#ui-layer {
+    width: 320px;
+    /* Fixed width for the HUD panel */
+    height: 100%;
+    background-color: #111a2c;
+    /* Distinct background for HUD panel */
+    border-left: 2px solid #3a4b66;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: -5px 0 15px rgba(0, 0, 0, 0.5);
+}
+
+#hud {
+    padding: 20px;
+}
+
+#hud h1 {
+    font-size: 1.2rem;
+    margin-bottom: 10px;
+    color: #64ffda;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.status-panel {
+    margin-bottom: 15px;
+}
+
+.status-panel p {
+    font-size: 0.95rem;
+    margin: 4px 0;
+    color: #a8b2d1;
+}
+
+.status-panel span {
+    color: #fff;
+    font-weight: bold;
+}
+
+.controls {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+button {
+    background-color: #233554;
+    color: #64ffda;
+    border: 1px solid #64ffda;
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+}
+
+button:hover {
+    background-color: rgba(100, 255, 218, 0.1);
+}
+
+button:active {
+    background-color: rgba(100, 255, 218, 0.2);
+}
+
+.material-selector label {
+    font-size: 0.85rem;
+    color: #a8b2d1;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.material-selector select {
+    width: 100%;
+    background-color: #112240;
+    color: #ccd6f6;
+    border: 1px solid #3a4b66;
+    padding: 6px;
+    border-radius: 4px;
+    font-family: inherit;
+    margin-bottom: 5px;
+}
+
+.physics-settings {
+    border-top: 1px solid #3a4b66;
+    padding-top: 10px;
+    margin-top: 5px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.setting-item label {
+    font-size: 0.8rem;
+    color: #a8b2d1;
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 2px;
+}
+
+.setting-item input[type="range"] {
+    width: 100%;
+    cursor: pointer;
+    accent-color: #64ffda;
+}
+
+#message-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(10, 25, 47, 0.95);
+    border: 2px solid #64ffda;
+    padding: 30px 40px;
+    border-radius: 8px;
+    text-align: center;
+    pointer-events: auto;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    transition: opacity 0.3s ease;
+}
+
+#message-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+#overlay-title {
+    color: #64ffda;
+    font-size: 2rem;
+    margin-bottom: 10px;
+}
+
+#overlay-text {
+    color: #ccd6f6;
+    font-size: 1.1rem;
+    margin-bottom: 20px;
+}

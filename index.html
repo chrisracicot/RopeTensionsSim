@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Constrained Construction</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div id="game-container">
+        <div id="canvas-wrapper">
+            <canvas id="game-canvas"></canvas>
+
+            <div id="message-overlay" class="hidden">
+                <h2 id="overlay-title">Success</h2>
+                <p id="overlay-text">Structure held successfully!</p>
+                <button id="btn-next">Next Level</button>
+            </div>
+        </div>
+        <div id="ui-layer">
+            <div id="hud">
+                <h1>Constrained Construction</h1>
+                <div class="status-panel">
+                    <p>Mode: <span id="mode-text">BUILD</span></p>
+                    <p>Budget: $<span id="budget-text">1000</span></p>
+                </div>
+                <div class="controls">
+                    <button id="btn-simulate">Simulate</button>
+                    <button id="btn-reset">Reset</button>
+                    <div class="material-selector">
+                        <label>Material:</label>
+                        <select id="select-material">
+                            <option value="twine">Twine [$1/m]</option>
+                            <option value="hemp" selected>Hemp [$3/m]</option>
+                            <option value="steel">Steel [$10/m]</option>
+                        </select>
+                    </div>
+                    <div class="physics-settings">
+                        <div class="setting-item">
+                            <label>Gravity: <span id="val-gravity">10.0</span></label>
+                            <input type="range" id="slider-gravity" min="0" max="1" step="0.01" value="1">
+                        </div>
+                        <div class="setting-item">
+                            <label>Initial X Velocity: <span id="val-vel-x">0.0</span></label>
+                            <input type="range" id="slider-vel-x" min="-100" max="100" step="1" value="0">
+                        </div>
+                        <div class="setting-item">
+                            <label>Initial Y Velocity: <span id="val-vel-y">0.0</span></label>
+                            <input type="range" id="slider-vel-y" min="-100" max="100" step="1" value="0">
+                        </div>
+                        <div class="setting-item" style="border-top: 1px solid #3a4b66; padding-top: 5px;">
+                            <label>Live Total Velocity: <span id="live-velocity"
+                                    style="color: #64ffda;">0.00</span></label>
+                        </div>
+                    </div>
+                    <div class="physics-settings" style="margin-top: 10px;">
+                        <h3
+                            style="font-size: 0.9rem; color: #64ffda; margin-bottom: 5px; border-bottom: 1px solid #3a4b66; padding-bottom: 3px;">
+                            Rope Properties</h3>
+
+                        <div
+                            style="font-size: 0.8rem; color: #a8b2d1; margin-top: 5px; margin-bottom: 5px; font-weight: bold;">
+                            Strength (Strain Limit)</div>
+                        <div class="setting-item">
+                            <label>Twine Strength: <span id="val-tough-twine">1.01</span></label>
+                            <input type="range" id="slider-tough-twine" min="0" max="3" step="0.01" value="1.01">
+                        </div>
+                        <div class="setting-item">
+                            <label>Hemp Strength: <span id="val-tough-hemp">1.08</span></label>
+                            <input type="range" id="slider-tough-hemp" min="0" max="3" step="0.01" value="1.08">
+                        </div>
+                        <div class="setting-item">
+                            <label>Steel Strength: <span id="val-tough-steel">1.25</span></label>
+                            <input type="range" id="slider-tough-steel" min="0" max="3" step="0.01" value="1.25">
+                        </div>
+
+                        <div
+                            style="font-size: 0.8rem; color: #a8b2d1; margin-top: 10px; margin-bottom: 5px; font-weight: bold;">
+                            Tension (Stiffness)</div>
+                        <div class="setting-item">
+                            <label>Twine Tension: <span id="val-tension-twine">0.10</span></label>
+                            <input type="range" id="slider-tension-twine" min="0.01" max="1.0" step="0.01" value="0.10">
+                        </div>
+                        <div class="setting-item">
+                            <label>Hemp Tension: <span id="val-tension-hemp">0.40</span></label>
+                            <input type="range" id="slider-tension-hemp" min="0.01" max="1.0" step="0.01" value="0.40">
+                        </div>
+                        <div class="setting-item">
+                            <label>Steel Tension: <span id="val-tension-steel">0.90</span></label>
+                            <input type="range" id="slider-tension-steel" min="0.01" max="1.0" step="0.01" value="0.90">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Physics Core -->
+    <script src="js/physics/Vector2.js"></script>
+    <script src="js/physics/VerletNode.js"></script>
+    <script src="js/physics/DistanceConstraint.js"></script>
+    <script src="js/physics/CollisionResolver.js"></script>
+    <script src="js/physics/VerletEngine.js"></script>
+
+    <!-- Rendering -->
+    <script src="js/rendering/RopeRenderer.js"></script>
+
+    <!-- Core Game Logic -->
+    <script src="js/core/WorldAnchor.js"></script>
+    <script src="js/core/StructureBuilder.js"></script>
+    <script src="js/core/LevelManager.js"></script>
+
+    <!-- Main Entry -->
+    <script src="js/main.js"></script>
+</body>
+
+</html>
