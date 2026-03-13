@@ -16,7 +16,6 @@
             <div id="message-overlay" class="hidden">
                 <h2 id="overlay-title">Success</h2>
                 <p id="overlay-text">Structure held successfully!</p>
-                <button id="btn-next">Next Level</button>
             </div>
         </div>
         <div id="ui-layer">
@@ -29,72 +28,68 @@
                 <div class="controls">
                     <button id="btn-simulate">Simulate</button>
                     <button id="btn-reset">Reset</button>
-                    <div class="material-selector">
-                        <label>Material:</label>
-                        <select id="select-material">
-                            <option value="twine">Twine [$1/m]</option>
-                            <option value="hemp" selected>Hemp [$3/m]</option>
-                            <option value="steel">Steel [$10/m]</option>
-                        </select>
-                    </div>
+
                     <div class="physics-settings">
+                        <h3
+                            style="font-size: 0.9rem; color: #64ffda; margin-bottom: 5px; border-bottom: 1px solid #3a4b66; padding-bottom: 3px; text-transform: uppercase;">
+                            Global Physics</h3>
                         <div class="setting-item">
                             <label>Gravity: <span id="val-gravity">100%</span></label>
-                            <input type="range" id="slider-gravity" min="0" max="1" step="0.01" value="1">
+                            <input type="range" id="slider-gravity" min="0" max="2" step="0.01" value="1">
                         </div>
                         <div class="setting-item">
-                            <label>Initial X Velocity: <span id="val-vel-x">0.0</span></label>
+                            <label>Engine Iterations: <span id="val-iterations">50</span></label>
+                            <input type="range" id="slider-iterations" min="10" max="100" step="1" value="50">
+                        </div>
+                        <div class="setting-item">
+                            <label>Launch X Velocity: <span id="val-vel-x">0.0</span></label>
                             <input type="range" id="slider-vel-x" min="-100" max="100" step="1" value="0">
                         </div>
                         <div class="setting-item">
-                            <label>Initial Y Velocity: <span id="val-vel-y">0.0</span></label>
+                            <label>Launch Y Velocity: <span id="val-vel-y">0.0</span></label>
                             <input type="range" id="slider-vel-y" min="-100" max="100" step="1" value="0">
                         </div>
                         <div class="setting-item" style="border-top: 1px solid #3a4b66; padding-top: 5px;">
-                            <label>Live Total Velocity: <span id="live-velocity"
-                                    style="color: #64ffda;">0.00</span></label>
+                            <label>Live Velocity: <span id="live-velocity" style="color: #64ffda;">0.00</span></label>
                         </div>
                     </div>
+
                     <div class="physics-settings" style="margin-top: 10px;">
                         <h3
-                            style="font-size: 0.9rem; color: #64ffda; margin-bottom: 5px; border-bottom: 1px solid #3a4b66; padding-bottom: 3px;">
-                            Rope Properties</h3>
+                            style="font-size: 0.9rem; color: #64ffda; margin-bottom: 5px; border-bottom: 1px solid #3a4b66; padding-bottom: 3px; text-transform: uppercase;">
+                            Sandbox Rope Properties</h3>
 
-                        <div
-                            style="font-size: 0.8rem; color: #a8b2d1; margin-top: 5px; margin-bottom: 5px; font-weight: bold;">
-                            Breaking Strength</div>
                         <div class="setting-item">
-                            <label>Twine Strength: <span id="val-tough-twine">34%</span></label>
-                            <input type="range" id="slider-tough-twine" min="0" max="3" step="0.01" value="1.01">
-                        </div>
-                        <div class="setting-item">
-                            <label>Hemp Strength: <span id="val-tough-hemp">36%</span></label>
-                            <input type="range" id="slider-tough-hemp" min="0" max="3" step="0.01" value="1.08">
-                        </div>
-                        <div class="setting-item">
-                            <label>Steel Strength: <span id="val-tough-steel">100%</span></label>
-                            <input type="range" id="slider-tough-steel" min="0" max="3" step="0.01" value="3">
+                            <label>Breaking Strength: <span id="val-sandbox-strength">75%</span></label>
+                            <input type="range" id="slider-sandbox-strength" min="0.5" max="6.5" step="0.05"
+                                value="4.5">
                         </div>
 
-                        <div
-                            style="font-size: 0.8rem; color: #a8b2d1; margin-top: 10px; margin-bottom: 5px; font-weight: bold;">
-                            Tension (Tautness / Slack)</div>
                         <div class="setting-item">
-                            <label>Twine Tension: <span id="val-tension-twine">9%</span></label>
-                            <input type="range" id="slider-tension-twine" min="0.01" max="1.0" step="0.01" value="0.10">
+                            <label>Starting Sag: <span id="val-sandbox-tension">100%</span></label>
+                            <input type="range" id="slider-sandbox-tension" min="0.94" max="1.15" step="0.01"
+                                value="1.0">
                         </div>
+
                         <div class="setting-item">
-                            <label>Hemp Tension: <span id="val-tension-hemp">39%</span></label>
-                            <input type="range" id="slider-tension-hemp" min="0.01" max="1.0" step="0.01" value="0.40">
+                            <label>Impact Rigidity: <span id="val-sandbox-rigidity">50</span></label>
+                            <input type="range" id="slider-sandbox-rigidity" min="0" max="500" step="1" value="50">
                         </div>
+
                         <div class="setting-item">
-                            <label>Steel Tension: <span id="val-tension-steel">100%</span></label>
-                            <input type="range" id="slider-tension-steel" min="0.01" max="1.0" step="0.01" value="1.0">
+                            <label>Segment Length: <span id="val-sandbox-segment">30px</span></label>
+                            <input type="range" id="slider-sandbox-segment" min="10" max="100" step="1" value="10">
+                        </div>
+
+                        <div class="setting-item">
+                            <label>Node Mass: <span id="val-sandbox-mass">0.2</span></label>
+                            <input type="range" id="slider-sandbox-mass" min="0.05" max="2.0" step="0.05" value="0.2">
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
     </div>
 
     <!-- Physics Core -->
@@ -115,5 +110,4 @@
     <!-- Main Entry -->
     <script src="js/main.js"></script>
 </body>
-
 </html>

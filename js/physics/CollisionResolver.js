@@ -1,5 +1,44 @@
 class CollisionResolver {
     /**
+     * Resolves collision between two circles.
+     * @param {VerletNode} nodeA 
+     * @param {VerletNode} nodeB 
+     */
+    static resolveCircleCircle(nodeA, nodeB) {
+        const distVec = nodeA.position.sub(nodeB.position);
+        const dist = distVec.mag();
+        const minDist = nodeA.radius + nodeB.radius;
+
+        if (dist < minDist) {
+            const overlap = minDist - dist;
+            const collisionNormal = dist > 0 ? distVec.div(dist) : new Vector2(0, -1);
+            const resolution = collisionNormal.mul(overlap);
+
+            if (nodeA.isPinned && !nodeB.isPinned) {
+                nodeB.position.x -= resolution.x;
+                nodeB.position.y -= resolution.y;
+                nodeB.oldPosition.x -= resolution.x * 0.5; // Faint bounce dampening
+                nodeB.oldPosition.y -= resolution.y * 0.5;
+            } else if (!nodeA.isPinned && nodeB.isPinned) {
+                nodeA.position.x += resolution.x;
+                nodeA.position.y += resolution.y;
+                nodeA.oldPosition.x += resolution.x * 0.5;
+                nodeA.oldPosition.y += resolution.y * 0.5;
+            } else if (!nodeA.isPinned && !nodeB.isPinned) {
+                // Both dynamic: distribute based on mass (simplified)
+                const totalMass = nodeA.mass + nodeB.mass;
+                const ratioA = nodeB.mass / totalMass;
+                const ratioB = nodeA.mass / totalMass;
+
+                nodeA.position.x += resolution.x * ratioA;
+                nodeA.position.y += resolution.y * ratioA;
+                nodeB.position.x -= resolution.x * ratioB;
+                nodeB.position.y -= resolution.y * ratioB;
+            }
+        }
+    }
+
+    /**
      * Resolves collision between a circle (vehicle) and a line segment (rope constraint).
      * @param {VerletNode} circle - The vehicle node
      * @param {DistanceConstraint} constraint - The rope segment
@@ -42,7 +81,14 @@ class CollisionResolver {
 
             // 1. Move vehicle out of rope (dynamic push based on mass)
             const circleMass = circle.mass || 1.0;
-            const ropeMass = 1.0; // Assume rope nodes have unit mass
+            const ropeBaseMass = 1.0; // Base mass of rope nodes
+
+            // Mass scales exponentially with tension. High tension means it resists movement heavily.
+            // We normalize tension (0.01-0.5 range) for scaling so it's more impactful even at the cap.
+            const normTension = (constraint.tension || 0.1) * 2; // Maps 0.5 to 1.0
+            const dynamicMass = Math.pow(normTension, 3) * (constraint.rigidity || 1.0) * 5.0;
+            const ropeMass = ropeBaseMass + dynamicMass;
+
             const totalMass = circleMass + ropeMass;
 
             // Calculate ratios: heavier objects move less
@@ -72,6 +118,13 @@ class CollisionResolver {
                 n2.position.x += forceOnRope.x * t;
                 n2.position.y += forceOnRope.y * t;
             }
+
+            // --- Impact Force Transfer ---
+            // Track the PEAK impact force per frame to prevent astronomical buildup
+            // over 50 iterations from microscopic overlaps.
+            const impactScalar = 2.0; // Calibration factor for impact damage
+            const impactForce = overlap * circleMass * impactScalar;
+            constraint.peakImpactForce = Math.max((constraint.peakImpactForce || 0), impactForce);
         }
     }
 }

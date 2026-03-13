@@ -3,7 +3,7 @@ class VerletEngine {
         this.nodes = [];
         this.constraints = [];
         this.gravity = new Vector2(0, gravityY);
-        this.iterations = 30; // Reduced from 50 to allow ropes to stretch enough to reach breaking strain
+        this.iterations = 50; // Increased to 50 for higher stiffness and faster propagation
         this.timeStep = 0.016; // Assuming ~60fps
         this.fixedDeltaTimeSq = this.timeStep * this.timeStep;
     }
@@ -24,16 +24,62 @@ class VerletEngine {
     update(vehicleNode = null) {
         this.simulate();
 
+        // Reset tension tracking for this frame
+        for (let j = 0; j < this.constraints.length; j++) {
+            this.constraints[j].frameTension = 0;
+            this.constraints[j].peakImpactForce = 0;
+        }
+
         // Iterations make the simulation stiffer and more accurate
         for (let i = 0; i < this.iterations; i++) {
             this.applyConstraints();
 
-            // Resolve collision between vehicle and all rope segments
+            // Resolve collision between vehicle, rope segments, and anchors
             if (vehicleNode) {
+                // 1. Check against rope segments
                 for (let j = 0; j < this.constraints.length; j++) {
                     CollisionResolver.resolveCircleSegment(vehicleNode, this.constraints[j]);
                 }
+
+                // 2. Check against fixed anchor points (pinned nodes)
+                for (let j = 0; j < this.nodes.length; j++) {
+                    const node = this.nodes[j];
+                    if (node.isPinned && node !== vehicleNode) {
+                        CollisionResolver.resolveCircleCircle(vehicleNode, node);
+                    }
+                }
             }
+        }
+
+        // Apply force-based breaking (Single-Snap Rule)
+        // Find the constraint with the absolute highest stress to break this frame
+        const FORCE_MULTIPLIER = 80.0;
+        let mostStressed = null;
+        let maxStressRatio = 1.0; // Only break if ratio exceeds 1.0
+
+        for (let j = 0; j < this.constraints.length; j++) {
+            const c = this.constraints[j];
+            if (c.breakingStrain === Infinity) continue;
+
+            // Non-linear scaling: push the high end (100%+) significantly higher
+            // while keeping the 0-50% range sensitive to impact.
+            let strainLimit = c.breakingStrain;
+            if (strainLimit > 3.0) {
+                // Exponential boost for upper half of the slider (3.0 to 6.5)
+                strainLimit = strainLimit + Math.pow(strainLimit - 3.0, 2);
+            }
+
+            // Stress ratio = (current frame tension + peak kinetic impact) / allowed breaking limit
+            let totalStress = c.frameTension + (c.peakImpactForce || 0);
+            let stressRatio = totalStress / (strainLimit * FORCE_MULTIPLIER);
+            if (stressRatio > maxStressRatio) {
+                maxStressRatio = stressRatio;
+                mostStressed = c;
+            }
+        }
+
+        if (mostStressed) {
+            mostStressed.isBroken = true;
         }
 
         // Clean up broken constraints
