@@ -5,5 +5,6 @@ class VerletNode {
         this.isPinned = isPinned;
         this.mass = 1.0;
         this.radius = 2.0; // Collision/rendering radius
+        this.gravityScale = 1.0; // High-tension tautness reduces ambient gravity effect
     }
 }

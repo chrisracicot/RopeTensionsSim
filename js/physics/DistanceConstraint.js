@@ -2,9 +2,16 @@ class DistanceConstraint {
     constructor(nodeA, nodeB, materialInfo) {
         this.nodeA = nodeA;
         this.nodeB = nodeB;
-        this.stiffness = materialInfo.stiffness || 1.0;
+        this.stiffness = 1.0; // Ropes are fundamentally inelastic now. Pliancy comes from slack.
         this.breakingStrain = materialInfo.breakingStrain || 1.5; // Strain limit before it snaps
-        this.restLength = nodeA.position.distanceTo(nodeB.position);
+
+        let actualDist = nodeA.position.distanceTo(nodeB.position);
+
+        // High tension = short, slack = long
+        let slackMultiplier = materialInfo.slackMultiplier || 1.0;
+
+        this.restLength = actualDist * slackMultiplier;
+        this.drawnLength = actualDist; // Store original drawn length for visual strain calc
         this.isBroken = false;
 
         // Strain ranges for visualizing wear
@@ -19,20 +26,13 @@ class DistanceConstraint {
         let dy = this.nodeA.position.y - this.nodeB.position.y;
         let currentDist = Math.sqrt(dx * dx + dy * dy);
 
-        // Calculate physical Tension Force
+        // Calculate geometric stretch percentage (1.0 = exactly the length drawn)
         if (this.restLength > 0) {
             let stretchRatio = currentDist / this.restLength;
-            this.currentStrainRatio = stretchRatio;
-            // We only care about stretching (tension), not compressing
-            let strain = Math.max(0, stretchRatio - 1.0);
+            this.currentStrainRatio = currentDist / this.drawnLength;
 
-            // True physical Tension is the amount of stretch multiplied by the rope's stiffness
-            let tensionForce = strain * this.stiffness;
-
-            // The UI "Strength" (breakingStrain) is stored as e.g. 1.05. We convert this to a max force tolerance of 0.05.
-            let maxTensionTolerance = this.breakingStrain - 1.0;
-
-            if (tensionForce > maxTensionTolerance) {
+            // Simple breaking: If we stretch materially beyond our resting length allowance
+            if (stretchRatio > this.breakingStrain && this.breakingStrain !== Infinity) {
                 this.isBroken = true;
                 return;
             }

@@ -51,8 +51,8 @@ class VerletEngine {
             let tempY = node.position.y;
 
             // next_pos = cur_pos + (cur_pos - old_pos) + acceleration * dt * dt
-            node.position.x += (node.position.x - node.oldPosition.x) + this.gravity.x * this.fixedDeltaTimeSq;
-            node.position.y += (node.position.y - node.oldPosition.y) + this.gravity.y * this.fixedDeltaTimeSq;
+            node.position.x += (node.position.x - node.oldPosition.x) + (this.gravity.x * node.gravityScale) * this.fixedDeltaTimeSq;
+            node.position.y += (node.position.y - node.oldPosition.y) + (this.gravity.y * node.gravityScale) * this.fixedDeltaTimeSq;
 
             node.oldPosition.x = tempX;
             node.oldPosition.y = tempY;

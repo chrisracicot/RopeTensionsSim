@@ -8,9 +8,9 @@ class StructureBuilder {
         this.mousePos = new Vector2();
 
         this.materials = {
-            twine: { stiffness: 0.1, breakingStrain: 1.015, costPerSegment: 1 },
-            hemp: { stiffness: 0.4, breakingStrain: 1.08, costPerSegment: 3 },
-            steel: { stiffness: 0.9, breakingStrain: 1.25, costPerSegment: 10 }
+            twine: { preTension: 0.1, breakingStrain: 1.015, costPerSegment: 1 },
+            hemp: { preTension: 0.4, breakingStrain: 1.08, costPerSegment: 3 },
+            steel: { preTension: 1.0, breakingStrain: 3.0, costPerSegment: 10 }
         };
         this.currentMaterialId = 'hemp';
         this.segmentLength = 15; // Target distance between nodes
@@ -98,6 +98,20 @@ class StructureBuilder {
 
         let prevNode = startAnchor.node;
 
+        // Map preTension (0.01 to 1.0) to Physical Slack and Gravity Resistance
+        let tensionVal = material.preTension || 0.1;
+
+        // Slack: Tension 0.01 = 1.3x slack (30% extra length). Tension 1.0 = 1.0x (0 slack).
+        let slackMultiplier = 1.0 + ((1.0 - tensionVal) * 0.3);
+
+        // Gravity Scale: Helps high tension strings not immediately bow under their own weight.
+        // Tension 1.0 = 0.0 gravity (perfectly straight taut line)
+        // Tension <0.8 = 1.0 gravity (normal heavy sag)
+        let gravityScale = tensionVal >= 0.8 ? (1.0 - tensionVal) / 0.2 : 1.0;
+
+        // Attach the slack explicitly to the material layout so the constraint uses it
+        let matLayout = { ...material, slackMultiplier: slackMultiplier };
+
         for (let i = 1; i <= numSegments; i++) {
             let isLast = (i === numSegments);
             let nextPos = pStart.add(stepVec.mul(i));
@@ -107,18 +121,19 @@ class StructureBuilder {
                 if (endAnchor) {
                     newNode = endAnchor.node;
                 } else {
-                    // Create a dynamic joint in space
                     newNode = new VerletNode(nextPos.x, nextPos.y);
-                    newNode.mass = 0.2; // Rope nodes must be light so they don't break themselves
+                    newNode.mass = 0.2;
+                    newNode.gravityScale = gravityScale;
                     this.engine.addNode(newNode);
                 }
             } else {
                 newNode = new VerletNode(nextPos.x, nextPos.y);
-                newNode.mass = 0.2; // Rope nodes must be light
+                newNode.mass = 0.2;
+                newNode.gravityScale = gravityScale;
                 this.engine.addNode(newNode);
             }
 
-            let constraint = new DistanceConstraint(prevNode, newNode, material);
+            let constraint = new DistanceConstraint(prevNode, newNode, matLayout);
             this.engine.addConstraint(constraint);
 
             prevNode = newNode;
