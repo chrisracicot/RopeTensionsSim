@@ -13,21 +13,24 @@ class RopeRenderer {
         for (let i = 0; i < engine.constraints.length; i++) {
             let c = engine.constraints[i];
 
-            // Visual strain indicator
+            // Visual thickness based on rope type
             let maxThick = 4;
-            let ratio = c.currentStrainRatio;
+            if (c.ropeType === 'twine') maxThick = 2;
+            else if (c.ropeType === 'steel') maxThick = 5;
 
-            // Map ratio to color 
-            let r, g, b;
-            if (ratio < 1.1) {
-                // Chill: cyan-ish (100, 255, 218)
-                r = 100; g = 255; b = 218;
-            } else if (ratio < 1.3) {
-                // Warning: Orange
-                r = 255; g = 165; b = 0;
-            } else {
-                // Breaking: Red
-                r = 255; g = 50; b = 50;
+            let baseColor = c.color || [100, 255, 218];
+            let r = baseColor[0];
+            let g = baseColor[1];
+            let b = baseColor[2];
+
+            let ratio = c.currentStrainRatio;
+            if (ratio > 1.1) {
+                // Blend with warning red (255, 50, 50) based on strain ratio
+                // Reaches full red at 1.4x stretch ratio
+                let blendFactor = Math.min(1.0, (ratio - 1.1) / 0.3);
+                r = Math.round(r * (1.0 - blendFactor) + 255 * blendFactor);
+                g = Math.round(g * (1.0 - blendFactor) + 50 * blendFactor);
+                b = Math.round(b * (1.0 - blendFactor) + 50 * blendFactor);
             }
 
             this.ctx.beginPath();

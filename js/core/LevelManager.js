@@ -2,19 +2,22 @@ class LevelManager {
     constructor(engine, builder) {
         this.engine = engine;
         this.builder = builder;
-        this.state = 'SIMULATE'; // Always start in SIMULATE mode
+        this.state = 'STOPPED'; // Start in STOPPED mode
         this.budget = 1000;
         this.isIncreasingWeight = false;
+        this.endlessMode = false;
 
         this.vehicle = null;
         this.simulationFrames = 0;
         this.stableFrames = 0;
+        this.ballDropped = false;
 
         // Default simulation settings
         this.settings = {
             gravity: 10.0,
             velX: 0.0,
-            velY: 0.0
+            velY: 0.0,
+            ballMass: 50.0
         };
     }
 
@@ -22,6 +25,7 @@ class LevelManager {
         this.engine.clear();
         this.builder.anchors = [];
         this.budget = 1000;
+        this.ballDropped = false;
 
         // Add static anchors on the same Y-level (asymmetrical horizontal spacing)
         const anchor1 = new WorldAnchor(150, 350);
@@ -35,8 +39,27 @@ class LevelManager {
         const numSegments = Math.max(1, Math.floor(totalDist / settings.segmentLength));
         this.builder.buildRope(anchor1, anchor2, null, numSegments, settings);
 
+        // Spawn vehicle at horizontal center
+        const canvasEl = document.getElementById('game-canvas');
+        const startX = canvasEl ? canvasEl.width / 2 : 400;
+        this.vehicle = new VerletNode(startX, 50);
+        this.vehicle.mass = this.settings.ballMass;
+        this.vehicle.radius = 22; // Hardcoded radius for standard 50 mass
+
+        // Initial velocity explicit control
+        this.vehicle.oldPosition.x = this.vehicle.position.x - (this.settings.velX * 0.016);
+        this.vehicle.oldPosition.y = this.vehicle.position.y - (this.settings.velY * 0.016);
+
+        this.engine.addNode(this.vehicle);
+
+        // Update engine gravity (scaled for realistic feel)
+        this.engine.gravity.y = this.settings.gravity * 25.0;
+
+        this.simulationFrames = 0;
+        this.stableFrames = 0;
+
         this.updateHUD();
-        this.startSimulation();
+        this.updateModeText();
     }
 
     addAnchor(a) {
@@ -54,37 +77,57 @@ class LevelManager {
         return false;
     }
 
-    startSimulation() {
+    start() {
+        if (this.state === 'SIMULATE') return;
         this.state = 'SIMULATE';
-        this.simulationFrames = 0;
-        this.stableFrames = 0;
 
-        // Spawn vehicle at horizontal center
-        const canvasEl = document.getElementById('game-canvas');
-        const startX = canvasEl.width / 2;
-        this.vehicle = new VerletNode(startX, 50);
-        this.vehicle.mass = 50.0;
-        this.vehicle.radius = 22; // Hardcoded radius for standard 50 mass
-
-        // Initial velocity explicit control
-        this.vehicle.oldPosition.x = this.vehicle.position.x - (this.settings.velX * 0.016);
-        this.vehicle.oldPosition.y = this.vehicle.position.y - (this.settings.velY * 0.016);
-
-        this.engine.addNode(this.vehicle);
-
-        // Update engine gravity (scaled for realistic feel)
-        this.engine.gravity.y = this.settings.gravity * 25.0;
+        const overlay = document.getElementById('message-overlay');
+        if (overlay) overlay.classList.add('hidden');
 
         this.updateModeText();
+        if (typeof this.updateUIElements === 'function') {
+            this.updateUIElements();
+        }
+    }
+
+    dropBall() {
+        if (this.ballDropped) return;
+        this.ballDropped = true;
+
+        // Apply starting velocities dynamically when launched
+        if (this.vehicle) {
+            this.vehicle.oldPosition.x = this.vehicle.position.x - (this.settings.velX * 0.016);
+            this.vehicle.oldPosition.y = this.vehicle.position.y - (this.settings.velY * 0.016);
+        }
+
+        if (this.state !== 'SIMULATE') {
+            this.state = 'SIMULATE';
+            const overlay = document.getElementById('message-overlay');
+            if (overlay) overlay.classList.add('hidden');
+            this.updateModeText();
+        }
+
+        if (typeof this.updateUIElements === 'function') {
+            this.updateUIElements();
+        }
+    }
+
+    stop() {
+        this.reset();
     }
 
     reset() {
-        this.state = 'SIMULATE';
-        this.initLevel(); // Resets anchors and pre-places the rope
+        this.state = 'STOPPED';
+        this.initLevel(); // Resets anchors and pre-places the rope and vehicle
         const overlay = document.getElementById('message-overlay');
         if (overlay) overlay.classList.add('hidden');
+
         this.updateModeText();
+        if (typeof this.updateUIElements === 'function') {
+            this.updateUIElements();
+        }
     }
+
 
     update() {
         if (this.state === 'SIMULATE') {
@@ -95,22 +138,33 @@ class LevelManager {
                 this.vehicle.mass += 0.5;
             }
 
+            // If the ball has not been dropped yet, hold it in place
+            if (!this.ballDropped && this.vehicle) {
+                const canvasEl = document.getElementById('game-canvas');
+                const startX = canvasEl ? canvasEl.width / 2 : 400;
+                this.vehicle.position.x = startX;
+                this.vehicle.position.y = 50;
+                this.vehicle.oldPosition.x = startX;
+                this.vehicle.oldPosition.y = 50;
+            }
+
             this.engine.update(this.vehicle);
             this.checkConditions();
+        }
 
-            // Update live displays
-            if (this.vehicle) {
-                const speed = this.vehicle.position.distanceTo(this.vehicle.oldPosition) / 0.016;
-                const speedEl = document.getElementById('live-velocity');
-                if (speedEl) speedEl.innerText = speed.toFixed(2);
+        // Always update live displays when vehicle exists
+        if (this.vehicle) {
+            const speed = this.vehicle.position.distanceTo(this.vehicle.oldPosition) / 0.016;
+            const speedEl = document.getElementById('live-velocity');
+            if (speedEl) speedEl.innerText = speed.toFixed(2);
 
-                const massEl = document.getElementById('live-mass');
-                if (massEl) massEl.innerText = this.vehicle.mass.toFixed(1);
-            }
+            const massEl = document.getElementById('live-mass');
+            if (massEl) massEl.innerText = this.vehicle.mass.toFixed(1);
         }
     }
 
     checkConditions() {
+        if (this.endlessMode) return;
         if (!this.vehicle) return;
 
         // Loss: Check if vehicle edge falls into ground

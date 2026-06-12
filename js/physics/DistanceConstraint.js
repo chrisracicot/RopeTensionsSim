@@ -2,11 +2,13 @@ class DistanceConstraint {
     constructor(nodeA, nodeB, materialInfo) {
         this.nodeA = nodeA;
         this.nodeB = nodeB;
-        this.stiffness = 1.0; // Ropes are fundamentally inelastic now. Pliancy comes from slack.
         this.breakingStrain = materialInfo.breakingStrain || 1.5; // Strain limit before it snaps
+        this.color = materialInfo.color || [100, 255, 218];
+        this.ropeType = materialInfo.ropeType || 'rope';
 
         let actualDist = nodeA.position.distanceTo(nodeB.position);
-        this.rigidity = materialInfo.rigidity !== undefined ? materialInfo.rigidity : 1.0;
+        this.rigidity = materialInfo.rigidity !== undefined ? materialInfo.rigidity : 500.0;
+        this.stiffness = this.rigidityToStiffness(this.rigidity);
 
 
         // High tension = short, slack = long
@@ -25,6 +27,11 @@ class DistanceConstraint {
         this.invMassB = nodeB.isPinned ? 0 : (1.0 / (nodeB.mass || 1.0));
 
         this.frameTension = 0; // Accumulates correction distance over multiple iterations
+    }
+
+    rigidityToStiffness(r) {
+        // Map rigidity (0 to 500) to stiffness (0.1 to 1.0)
+        return 0.1 + (Math.max(0, Math.min(500, r)) / 500) * 0.9;
     }
 
     solve() {

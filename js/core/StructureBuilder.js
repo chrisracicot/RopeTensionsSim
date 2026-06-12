@@ -15,12 +15,19 @@ class StructureBuilder {
         // Infinite threshold check (Max range in UI is 6.5)
         if (strength >= 6.45) strength = Infinity;
 
+        const ropeType = document.getElementById('select-rope-type')?.value || 'rope';
+        let color = [195, 160, 120]; // default standard rope (Light Brown/Tan)
+        if (ropeType === 'twine') color = [255, 200, 50]; // Twine (Yellow-Gold)
+        else if (ropeType === 'steel') color = [120, 180, 220]; // Steel Cable (Bright greyish-blue)
+
         return {
             strength: strength,
             tension: getVal('slider-sandbox-tension'),
             rigidity: getVal('slider-sandbox-rigidity'),
             segmentLength: getVal('slider-sandbox-segment'),
-            nodeMass: getVal('slider-sandbox-mass')
+            nodeMass: getVal('slider-sandbox-mass'),
+            ropeType: ropeType,
+            color: color
         };
     }
 
@@ -111,7 +118,9 @@ class StructureBuilder {
             breakingStrain: settings.strength, 
             slackMultiplier: slackMultiplier, 
             tensionVal: settings.tension, 
-            rigidity: settings.rigidity 
+            rigidity: settings.rigidity,
+            color: settings.color,
+            ropeType: settings.ropeType
         };
 
         for (let i = 1; i <= numSegments; i++) {
@@ -125,11 +134,13 @@ class StructureBuilder {
                 } else {
                     newNode = new VerletNode(nextPos.x, nextPos.y);
                     newNode.mass = settings.nodeMass;
+                    newNode.ropeType = settings.ropeType;
                     this.engine.addNode(newNode);
                 }
             } else {
                 newNode = new VerletNode(nextPos.x, nextPos.y);
                 newNode.mass = settings.nodeMass;
+                newNode.ropeType = settings.ropeType;
                 this.engine.addNode(newNode);
             }
 
