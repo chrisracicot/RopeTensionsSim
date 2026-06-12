@@ -6,6 +6,7 @@ class WorldAnchor {
 
         // Pinned node physically representing this anchor
         this.node = new VerletNode(x, y, true);
+        this.node.radius = radius;
 
         // References to attached constraints
         this.constraints = [];

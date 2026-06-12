@@ -52,12 +52,12 @@ class LevelManager {
     startSimulation() {
         if (this.state === 'SIMULATE') return;
         this.state = 'SIMULATE';
-        this.state = 'SIMULATE';
         this.simulationFrames = 0;
         this.stableFrames = 0;
 
         // Spawn vehicle at horizontal center
-        const startX = canvas.width / 2;
+        const canvasEl = document.getElementById('game-canvas');
+        const startX = canvasEl.width / 2;
         this.vehicle = new VerletNode(startX, 50);
         this.vehicle.mass = 50.0;
         this.vehicle.radius = 22; // Hardcoded radius for standard 50 mass
@@ -135,6 +135,13 @@ class LevelManager {
         document.getElementById('overlay-title').innerText = "Success!";
         document.getElementById('overlay-title').style.color = "#64ffda";
         document.getElementById('overlay-text').innerText = "Structure held successfully!";
+
+        // Auto-reset after 2 seconds
+        setTimeout(() => {
+            if (this.state === 'RESULT') {
+                this.reset();
+            }
+        }, 2000);
     }
 
     updateHUD() {
@@ -160,7 +167,7 @@ class LevelManager {
         // Draw Ghost Preview of Ball Start Position
         if (this.state === 'BUILD') {
             const previewRadius = 22;
-            const previewX = canvas.width / 2;
+            const previewX = ctx.canvas.width / 2;
             ctx.beginPath();
             ctx.arc(previewX, 50, previewRadius, 0, Math.PI * 2);
             ctx.fillStyle = 'rgba(255, 51, 102, 0.3)'; // Faint red

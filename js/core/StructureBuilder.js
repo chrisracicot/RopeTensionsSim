@@ -6,20 +6,22 @@ class StructureBuilder {
         this.isDrawing = false;
         this.startAnchor = null;
         this.mousePos = new Vector2();
-
-        this.materials = {
-            twine: { preTension: 0.1, breakingStrain: 1.015, costPerSegment: 1 },
-            hemp: { preTension: 0.4, breakingStrain: 1.08, costPerSegment: 3 },
-            steel: { preTension: 1.0, breakingStrain: 3.0, costPerSegment: 10 }
-        };
-        this.currentMaterialId = 'hemp';
-        this.segmentLength = 15; // Target distance between nodes
     }
 
-    setMaterial(matId) {
-        if (this.materials[matId]) {
-            this.currentMaterialId = matId;
-        }
+    getSandboxSettings() {
+        const getVal = (id) => parseFloat(document.getElementById(id).value);
+        let strength = getVal('slider-sandbox-strength');
+
+        // Infinite threshold check (Max range in UI is 6.5)
+        if (strength >= 6.45) strength = Infinity;
+
+        return {
+            strength: strength,
+            tension: getVal('slider-sandbox-tension'),
+            rigidity: getVal('slider-sandbox-rigidity'),
+            segmentLength: getVal('slider-sandbox-segment'),
+            nodeMass: getVal('slider-sandbox-mass')
+        };
     }
 
     getNearestAnchor(v, dist = 20) {
@@ -75,21 +77,23 @@ class StructureBuilder {
         let pStart = this.startAnchor.position;
         let pEnd = endAnchor ? endAnchor.position : v;
 
-        // Calculate cost based on length
+        // Pull live settings from Sandbox UI
+        const settings = this.getSandboxSettings();
+
+        // Calculate cost based on length (simplifying cost for sandbox)
         let totalDist = pStart.distanceTo(pEnd);
-        let numSegments = Math.max(1, Math.floor(totalDist / this.segmentLength));
-        let material = this.materials[this.currentMaterialId];
-        let estimatedCost = numSegments * material.costPerSegment;
+        let numSegments = Math.max(1, Math.floor(totalDist / settings.segmentLength));
+        let estimatedCost = numSegments * 5; // Flat cost for sandbox
 
         // Callback to level manager to check budget
         let allowed = onBuildCallback(estimatedCost);
 
         if (allowed) {
-            this.buildRope(this.startAnchor, endAnchor, v, numSegments, material);
+            this.buildRope(this.startAnchor, endAnchor, v, numSegments, settings);
         }
     }
 
-    buildRope(startAnchor, endAnchor, endPos, numSegments, material) {
+    buildRope(startAnchor, endAnchor, endPos, numSegments, settings) {
         let pStart = startAnchor.position;
         let pEnd = endAnchor ? endAnchor.position : endPos;
 
@@ -98,19 +102,17 @@ class StructureBuilder {
 
         let prevNode = startAnchor.node;
 
-        // Map preTension (0.01 to 1.0) to Physical Slack and Gravity Resistance
-        let tensionVal = material.preTension || 0.1;
+        // Map tensionVal (0.75 to 2.0) directly to Physical Slack
+        // 1.0 = Taut, 2.0 = 200% length (very saggy), 0.75 = 75% length (stretched)
+        let slackMultiplier = settings.tension;
 
-        // Slack: Tension 0.01 = 1.3x slack (30% extra length). Tension 1.0 = 1.0x (0 slack).
-        let slackMultiplier = 1.0 + ((1.0 - tensionVal) * 0.3);
-
-        // Gravity Scale: Helps high tension strings not immediately bow under their own weight.
-        // Tension 1.0 = 0.0 gravity (perfectly straight taut line)
-        // Tension <0.8 = 1.0 gravity (normal heavy sag)
-        let gravityScale = tensionVal >= 0.8 ? (1.0 - tensionVal) / 0.2 : 1.0;
-
-        // Attach the slack explicitly to the material layout so the constraint uses it
-        let matLayout = { ...material, slackMultiplier: slackMultiplier };
+        // breakingStrain is used directly from the force-based breaking logic
+        let matLayout = { 
+            breakingStrain: settings.strength, 
+            slackMultiplier: slackMultiplier, 
+            tensionVal: settings.tension, 
+            rigidity: settings.rigidity 
+        };
 
         for (let i = 1; i <= numSegments; i++) {
             let isLast = (i === numSegments);
@@ -122,14 +124,12 @@ class StructureBuilder {
                     newNode = endAnchor.node;
                 } else {
                     newNode = new VerletNode(nextPos.x, nextPos.y);
-                    newNode.mass = 0.2;
-                    newNode.gravityScale = gravityScale;
+                    newNode.mass = settings.nodeMass;
                     this.engine.addNode(newNode);
                 }
             } else {
                 newNode = new VerletNode(nextPos.x, nextPos.y);
-                newNode.mass = 0.2;
-                newNode.gravityScale = gravityScale;
+                newNode.mass = settings.nodeMass;
                 this.engine.addNode(newNode);
             }
 
