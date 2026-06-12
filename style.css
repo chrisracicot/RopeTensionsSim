@@ -174,3 +174,31 @@ button:active {
     font-size: 1.1rem;
     margin-bottom: 20px;
 }
+
+.weight-btn {
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #ff3366;
+    color: #fff;
+    border: 1px solid #ff3366;
+    border-radius: 4px;
+    padding: 12px 24px;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    box-shadow: 0 4px 15px rgba(255, 51, 102, 0.4);
+    z-index: 10;
+}
+
+.weight-btn:hover {
+    background-color: #ff527f;
+    box-shadow: 0 6px 20px rgba(255, 51, 102, 0.6);
+}
+
+.weight-btn:active {
+    background-color: #e02453;
+}

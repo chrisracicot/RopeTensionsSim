@@ -133,33 +133,28 @@ function initSliders() {
 initSliders();
 levelObj.initLevel();
 
-// Mouse tracking
-let mouseX = 0;
-let mouseY = 0;
+// Wire up weight button mouse/touch events
+const weightBtn = document.getElementById('btn-increase-weight');
 
-canvas.addEventListener('mousedown', (e) => {
-    if (levelObj.state !== 'BUILD') return;
-    builder.onMouseDown(new Vector2(e.clientX, e.clientY));
-});
+if (weightBtn) {
+    const startIncrease = (e) => {
+        e.preventDefault();
+        levelObj.isIncreasingWeight = true;
+    };
+    const stopIncrease = (e) => {
+        e.preventDefault();
+        levelObj.isIncreasingWeight = false;
+    };
 
-canvas.addEventListener('mousemove', (e) => {
-    mouseX = e.clientX;
-    mouseY = e.clientY;
-    builder.onMouseMove(new Vector2(mouseX, mouseY));
-});
+    weightBtn.addEventListener('mousedown', startIncrease);
+    weightBtn.addEventListener('touchstart', startIncrease, { passive: false });
 
-canvas.addEventListener('mouseup', (e) => {
-    if (levelObj.state !== 'BUILD') return;
-    builder.onMouseUp(new Vector2(e.clientX, e.clientY), (cost) => {
-        return levelObj.requestBuild(cost);
-    });
-});
+    weightBtn.addEventListener('mouseup', stopIncrease);
+    weightBtn.addEventListener('mouseleave', stopIncrease);
+    weightBtn.addEventListener('touchend', stopIncrease, { passive: false });
+}
 
 // UI Event Binding
-document.getElementById('btn-simulate').addEventListener('click', () => {
-    levelObj.startSimulation();
-});
-
 document.getElementById('btn-reset').addEventListener('click', () => {
     levelObj.reset();
 });

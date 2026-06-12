@@ -2,11 +2,10 @@ class LevelManager {
     constructor(engine, builder) {
         this.engine = engine;
         this.builder = builder;
-        this.state = 'BUILD'; // BUILD, SIMULATE, RESULT
+        this.state = 'SIMULATE'; // Always start in SIMULATE mode
         this.budget = 1000;
+        this.isIncreasingWeight = false;
 
-        // Example Level 1 Data
-        this.vehicle = null;
         this.vehicle = null;
         this.simulationFrames = 0;
         this.stableFrames = 0;
@@ -24,14 +23,20 @@ class LevelManager {
         this.builder.anchors = [];
         this.budget = 1000;
 
-        // Add static anchors
-        this.addAnchor(new WorldAnchor(100, 400));
-        this.addAnchor(new WorldAnchor(200, 450));
+        // Add static anchors on the same Y-level (asymmetrical horizontal spacing)
+        const anchor1 = new WorldAnchor(150, 350);
+        const anchor2 = new WorldAnchor(700, 350);
+        this.addAnchor(anchor1);
+        this.addAnchor(anchor2);
 
-        this.addAnchor(new WorldAnchor(600, 450));
-        this.addAnchor(new WorldAnchor(800, 400));
+        // Pre-place rope between the two anchors
+        const settings = this.builder.getSandboxSettings();
+        const totalDist = anchor1.position.distanceTo(anchor2.position);
+        const numSegments = Math.max(1, Math.floor(totalDist / settings.segmentLength));
+        this.builder.buildRope(anchor1, anchor2, null, numSegments, settings);
 
         this.updateHUD();
+        this.startSimulation();
     }
 
     addAnchor(a) {
@@ -50,7 +55,6 @@ class LevelManager {
     }
 
     startSimulation() {
-        if (this.state === 'SIMULATE') return;
         this.state = 'SIMULATE';
         this.simulationFrames = 0;
         this.stableFrames = 0;
@@ -71,29 +75,38 @@ class LevelManager {
         // Update engine gravity (scaled for realistic feel)
         this.engine.gravity.y = this.settings.gravity * 25.0;
 
-        document.getElementById('mode-text').innerText = this.state;
+        this.updateModeText();
     }
 
     reset() {
-        this.state = 'BUILD';
-        this.initLevel(); // Crude reset, drops player built lines
-        document.getElementById('message-overlay').classList.add('hidden');
-        document.getElementById('mode-text').innerText = this.state;
+        this.state = 'SIMULATE';
+        this.initLevel(); // Resets anchors and pre-places the rope
+        const overlay = document.getElementById('message-overlay');
+        if (overlay) overlay.classList.add('hidden');
+        this.updateModeText();
     }
 
     update() {
         if (this.state === 'SIMULATE') {
             this.simulationFrames++;
+
+            // Gradually increase weight of the ball when button is held
+            if (this.isIncreasingWeight && this.vehicle) {
+                this.vehicle.mass += 0.5;
+            }
+
             this.engine.update(this.vehicle);
             this.checkConditions();
 
-            // Update live velocity display
+            // Update live displays
             if (this.vehicle) {
                 const speed = this.vehicle.position.distanceTo(this.vehicle.oldPosition) / 0.016;
-                document.getElementById('live-velocity').innerText = speed.toFixed(2);
-            }
+                const speedEl = document.getElementById('live-velocity');
+                if (speedEl) speedEl.innerText = speed.toFixed(2);
 
-            // Automatic locomotive forces removed (now strictly vertical gravity)
+                const massEl = document.getElementById('live-mass');
+                if (massEl) massEl.innerText = this.vehicle.mass.toFixed(1);
+            }
         }
     }
 
@@ -125,16 +138,23 @@ class LevelManager {
 
     triggerFailure() {
         this.state = 'RESULT';
-        // Removed failure popup notice as requested
+        // Auto-reset after 2 seconds on failure
+        setTimeout(() => {
+            if (this.state === 'RESULT') {
+                this.reset();
+            }
+        }, 2000);
     }
 
     triggerSuccess() {
         this.state = 'RESULT';
         let overlay = document.getElementById('message-overlay');
-        overlay.classList.remove('hidden');
-        document.getElementById('overlay-title').innerText = "Success!";
-        document.getElementById('overlay-title').style.color = "#64ffda";
-        document.getElementById('overlay-text').innerText = "Structure held successfully!";
+        if (overlay) {
+            overlay.classList.remove('hidden');
+            document.getElementById('overlay-title').innerText = "Success!";
+            document.getElementById('overlay-title').style.color = "#64ffda";
+            document.getElementById('overlay-text').innerText = "Structure held successfully!";
+        }
 
         // Auto-reset after 2 seconds
         setTimeout(() => {
@@ -145,7 +165,17 @@ class LevelManager {
     }
 
     updateHUD() {
-        document.getElementById('budget-text').innerText = this.budget;
+        const budgetEl = document.getElementById('budget-text');
+        if (budgetEl) {
+            budgetEl.innerText = this.budget;
+        }
+    }
+
+    updateModeText() {
+        const modeEl = document.getElementById('mode-text');
+        if (modeEl) {
+            modeEl.innerText = this.state;
+        }
     }
 
     draw(ctx) {
@@ -161,23 +191,6 @@ class LevelManager {
         ctx.strokeStyle = '#555';
         ctx.lineWidth = 2;
         ctx.stroke();
-
-        // Draw Target Zone Removed
-
-        // Draw Ghost Preview of Ball Start Position
-        if (this.state === 'BUILD') {
-            const previewRadius = 22;
-            const previewX = ctx.canvas.width / 2;
-            ctx.beginPath();
-            ctx.arc(previewX, 50, previewRadius, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(255, 51, 102, 0.3)'; // Faint red
-            ctx.fill();
-            ctx.strokeStyle = 'rgba(255, 51, 102, 0.6)';
-            ctx.lineWidth = 1;
-            ctx.setLineDash([3, 3]);
-            ctx.stroke();
-            ctx.setLineDash([]);
-        }
 
         // Draw Vehicle
         if (this.vehicle) {
