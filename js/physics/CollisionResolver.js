@@ -92,14 +92,22 @@ class CollisionResolver {
             const totalMass = circleMass + ropeMass;
 
             // Calculate ratios: heavier objects move less
-            const circleRatio = ropeMass / totalMass;
-            const ropeRatio = circleMass / totalMass;
+            let circleRatio = ropeMass / totalMass;
+            let ropeRatio = circleMass / totalMass;
+
+            // If the circle is pinned (e.g., being dragged by the mouse), it should act as an immovable object
+            if (circle.isPinned) {
+                circleRatio = 0;
+                ropeRatio = 1.0;
+            }
 
             const circleXMove = resolution.x * circleRatio;
             const circleYMove = resolution.y * circleRatio;
 
-            circle.position.x += circleXMove;
-            circle.position.y += circleYMove;
+            if (!circle.isPinned) {
+                circle.position.x += circleXMove;
+                circle.position.y += circleYMove;
+            }
 
             // DAMPEN: Pull oldPosition along with the push so the Verlet engine
             // doesn't see this displacement as radical new velocity

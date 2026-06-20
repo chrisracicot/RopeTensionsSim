@@ -30,8 +30,10 @@ class DistanceConstraint {
     }
 
     rigidityToStiffness(r) {
-        // Map rigidity (0 to 500) to stiffness (0.1 to 1.0)
-        return 0.1 + (Math.max(0, Math.min(500, r)) / 500) * 0.9;
+        // Map rigidity to a high stiffness range (0.2 to 0.8).
+        // Since breaking is disabled, high stiffness allows the rope to stretch instantly and evenly
+        // without the "slow release" lag effect when dragging stops.
+        return 0.2 + (Math.max(0, Math.min(500, r)) / 500) * 0.6;
     }
 
     solve() {
@@ -49,7 +51,10 @@ class DistanceConstraint {
 
         // Apply constraint limits (Inverse Mass weighted resolution)
         if (currentDist > 0) {
-            let invMassSum = this.invMassA + this.invMassB;
+            let invA = this.nodeA.isPinned ? 0 : this.invMassA;
+            let invB = this.nodeB.isPinned ? 0 : this.invMassB;
+            let invMassSum = invA + invB;
+            
             if (invMassSum <= 0) return; // Both nodes are pinned
 
             let difference = (this.restLength - currentDist) / currentDist;
@@ -57,13 +62,13 @@ class DistanceConstraint {
             let correctionVectorY = dy * difference * this.stiffness;
 
             // Move nodes proportionally to their inverse mass
-            if (this.invMassA > 0) {
-                this.nodeA.position.x += correctionVectorX * (this.invMassA / invMassSum);
-                this.nodeA.position.y += correctionVectorY * (this.invMassA / invMassSum);
+            if (invA > 0) {
+                this.nodeA.position.x += correctionVectorX * (invA / invMassSum);
+                this.nodeA.position.y += correctionVectorY * (invA / invMassSum);
             }
-            if (this.invMassB > 0) {
-                this.nodeB.position.x -= correctionVectorX * (this.invMassB / invMassSum);
-                this.nodeB.position.y -= correctionVectorY * (this.invMassB / invMassSum);
+            if (invB > 0) {
+                this.nodeB.position.x -= correctionVectorX * (invB / invMassSum);
+                this.nodeB.position.y -= correctionVectorY * (invB / invMassSum);
             }
 
             // Accumulate tension force (absolute magnitude of correction distance)

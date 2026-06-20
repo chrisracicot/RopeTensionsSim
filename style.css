@@ -138,6 +138,12 @@ button:disabled, input[type="range"]:disabled, select:disabled {
     pointer-events: none;
 }
 
+.setting-item.disabled {
+    opacity: 0.4;
+    pointer-events: none;
+}
+
+
 
 .material-selector label {
     font-size: 0.85rem;

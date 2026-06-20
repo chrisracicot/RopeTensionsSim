@@ -96,9 +96,7 @@ function updateHUDLabel(sliderId, labelId, type) {
             text = Math.round(val * 100) + "% (" + (val * 10.0).toFixed(1) + ")";
             break;
         case 'strength':
-            const isInf = val >= UI_CONFIG.sandbox.strength.infiniteThreshold;
-            const normalized = (val - UI_CONFIG.sandbox.strength.min) / (UI_CONFIG.sandbox.strength.max - UI_CONFIG.sandbox.strength.min);
-            text = isInf ? "100% (Infinity)" : Math.round(normalized * 100) + "% (" + val.toFixed(2) + ")";
+            text = "Infinity";
             break;
         case 'tension':
             text = Math.round(val * 100) + "% (" + val.toFixed(2) + ")";
@@ -376,22 +374,17 @@ canvas.addEventListener('mousedown', (e) => {
     levelObj.handleMouseDown(new Vector2(x, y));
 });
 
-canvas.addEventListener('mousemove', (e) => {
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    levelObj.handleMouseMove(new Vector2(x, y));
+window.addEventListener('mousemove', (e) => {
+    // Only process if we are actually dragging something to save performance
+    if (levelObj.state === 'SIMULATE' && levelObj.draggedNode) {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        levelObj.handleMouseMove(new Vector2(x, y));
+    }
 });
 
-canvas.addEventListener('mouseup', (e) => {
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    levelObj.handleMouseUp(new Vector2(x, y));
-});
-
-canvas.addEventListener('mouseleave', (e) => {
-    // Treat leaving the canvas same as releasing the mouse
+window.addEventListener('mouseup', (e) => {
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;

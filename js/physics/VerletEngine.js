@@ -51,39 +51,7 @@ class VerletEngine {
             }
         }
 
-        // Apply force-based breaking (Single-Snap Rule)
-        // Find the constraint with the absolute highest stress to break this frame
-        const FORCE_MULTIPLIER = 80.0;
-        let mostStressed = null;
-        let maxStressRatio = 1.0; // Only break if ratio exceeds 1.0
-
-        for (let j = 0; j < this.constraints.length; j++) {
-            const c = this.constraints[j];
-            if (c.breakingStrain === Infinity) continue;
-
-            // Non-linear scaling: push the high end (100%+) significantly higher
-            // while keeping the 0-50% range sensitive to impact.
-            let strainLimit = c.breakingStrain;
-            if (strainLimit > 3.0) {
-                // Exponential boost for upper half of the slider (3.0 to 6.5)
-                strainLimit = strainLimit + Math.pow(strainLimit - 3.0, 2);
-            }
-
-            // Stress ratio = (current frame tension + peak kinetic impact) / allowed breaking limit
-            let totalStress = c.frameTension + (c.peakImpactForce || 0);
-            let stressRatio = totalStress / (strainLimit * FORCE_MULTIPLIER);
-            if (stressRatio > maxStressRatio) {
-                maxStressRatio = stressRatio;
-                mostStressed = c;
-            }
-        }
-
-        if (mostStressed) {
-            mostStressed.isBroken = true;
-        }
-
-        // Clean up broken constraints
-        this.constraints = this.constraints.filter(c => !c.isBroken);
+        // Force-based breaking (Single-Snap Rule) is disabled. Ropes can stretch infinitely.
     }
 
     simulate() {
