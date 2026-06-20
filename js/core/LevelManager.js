@@ -11,6 +11,7 @@ class LevelManager {
         this.simulationFrames = 0;
         this.stableFrames = 0;
         this.ballDropped = false;
+        this.draggedNode = null;
 
         // Default simulation settings
         this.settings = {
@@ -255,6 +256,82 @@ class LevelManager {
             ctx.strokeStyle = '#fff';
             ctx.lineWidth = 2;
             ctx.stroke();
+        }
+    }
+
+    handleMouseDown(v) {
+        if (this.state !== 'SIMULATE') return;
+
+        // 1. Check for anchor detachment
+        let clickedAnchor = null;
+        for (let a of this.builder.anchors) {
+            if (a.position.distanceTo(v) < a.radius + 30) { // Add plenty of padding for easier clicking
+                clickedAnchor = a;
+                break;
+            }
+        }
+
+        if (clickedAnchor) {
+            // Detach connected ropes
+            for (let c of this.engine.constraints) {
+                if (c.nodeA === clickedAnchor.node) {
+                    let newNode = new VerletNode(clickedAnchor.position.x, clickedAnchor.position.y, false);
+                    newNode.mass = c.nodeB.mass || 1.0;
+                    newNode.ropeType = c.ropeType;
+                    this.engine.addNode(newNode);
+                    c.nodeA = newNode;
+                    c.invMassA = 1.0 / newNode.mass;
+                } else if (c.nodeB === clickedAnchor.node) {
+                    let newNode = new VerletNode(clickedAnchor.position.x, clickedAnchor.position.y, false);
+                    newNode.mass = c.nodeA.mass || 1.0;
+                    newNode.ropeType = c.ropeType;
+                    this.engine.addNode(newNode);
+                    c.nodeB = newNode;
+                    c.invMassB = 1.0 / newNode.mass;
+                }
+            }
+            return;
+        }
+
+        // 2. Check for node dragging
+        let nearestNode = null;
+        let minDist = 30; // Drag radius threshold
+        
+        for (let n of this.engine.nodes) {
+            if (n.isPinned) continue; // Cannot drag pinned nodes (anchors)
+            if (n === this.vehicle && !this.ballDropped) continue; // Don't drag un-dropped vehicle
+
+            let d = n.position.distanceTo(v);
+            if (d < minDist) {
+                minDist = d;
+                nearestNode = n;
+            }
+        }
+
+        if (nearestNode) {
+            this.draggedNode = nearestNode;
+            this.draggedNode.isPinned = true; // Pin it so physics doesn't fight mouse
+            this.draggedNode.position.x = v.x;
+            this.draggedNode.position.y = v.y;
+            this.draggedNode.oldPosition.x = v.x;
+            this.draggedNode.oldPosition.y = v.y;
+        }
+    }
+
+    handleMouseMove(v) {
+        if (this.draggedNode) {
+            this.draggedNode.position.x = v.x;
+            this.draggedNode.position.y = v.y;
+            // Also update old position so it doesn't gain insane velocity when released
+            this.draggedNode.oldPosition.x = v.x;
+            this.draggedNode.oldPosition.y = v.y;
+        }
+    }
+
+    handleMouseUp(v) {
+        if (this.draggedNode) {
+            this.draggedNode.isPinned = false;
+            this.draggedNode = null;
         }
     }
 }

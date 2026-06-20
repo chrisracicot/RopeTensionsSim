@@ -368,6 +368,35 @@ sandboxIds.forEach(id => {
         updateHUDLabel(id, `val-sandbox-${type}`, type);
     });
 });
+// Canvas Mouse Interaction for Ropes and Anchors
+canvas.addEventListener('mousedown', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    levelObj.handleMouseDown(new Vector2(x, y));
+});
+
+canvas.addEventListener('mousemove', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    levelObj.handleMouseMove(new Vector2(x, y));
+});
+
+canvas.addEventListener('mouseup', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    levelObj.handleMouseUp(new Vector2(x, y));
+});
+
+canvas.addEventListener('mouseleave', (e) => {
+    // Treat leaving the canvas same as releasing the mouse
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    levelObj.handleMouseUp(new Vector2(x, y));
+});
 
 let lastTime = 0;
 function gameLoop(timestamp) {
