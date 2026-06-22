@@ -26,6 +26,8 @@ class StructureBuilder {
             rigidity: getVal('slider-sandbox-rigidity'),
             segmentLength: getVal('slider-sandbox-segment'),
             nodeMass: getVal('slider-sandbox-mass'),
+            bendAngleLimit: getVal('slider-sandbox-bendAngleLimit'),
+            bendingStiffness: getVal('slider-sandbox-bendingStiffness'),
             ropeType: ropeType,
             color: color
         };
@@ -108,6 +110,7 @@ class StructureBuilder {
         let stepVec = pathVec.div(numSegments);
 
         let prevNode = startAnchor.node;
+        let nodesList = [prevNode];
 
         // Map tensionVal (0.75 to 2.0) directly to Physical Slack
         // 1.0 = Taut, 2.0 = 200% length (very saggy), 0.75 = 75% length (stretched)
@@ -147,7 +150,18 @@ class StructureBuilder {
             let constraint = new DistanceConstraint(prevNode, newNode, matLayout);
             this.engine.addConstraint(constraint);
 
+            nodesList.push(newNode);
             prevNode = newNode;
+        }
+
+        // Add Bending Constraints to limit curvature and prevent sharp corners
+        for (let i = 0; i < nodesList.length - 2; i++) {
+            let nA = nodesList[i];
+            let nB = nodesList[i + 1];
+            let nC = nodesList[i + 2];
+
+            let bConstraint = new BendingConstraint(nA, nB, nC, settings.bendAngleLimit, settings.bendingStiffness);
+            this.engine.addConstraint(bConstraint);
         }
     }
 

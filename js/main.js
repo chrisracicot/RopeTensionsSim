@@ -9,8 +9,10 @@ const UI_CONFIG = {
         strength: { min: 0.50, max: 6.50, step: 0.05, infiniteThreshold: 6.45 },
         tension: { min: 0.50, max: 2.00, step: 0.01 },
         rigidity: { min: 0, max: 500, step: 1 },
-        segment: { min: 5, max: 30, step: 1 },
-        mass: { min: 0.05, max: 2.00, step: 0.05 }
+        segment: { min: 3, max: 15, step: 1 },
+        mass: { min: 0.05, max: 2.00, step: 0.05 },
+        bendAngleLimit: { min: 0, max: 180, step: 1 },
+        bendingStiffness: { min: 0.00, max: 5.00, step: 0.05 }
     }
 };
 
@@ -53,6 +55,12 @@ function initSliders() {
     levelObj.settings.ballMass = parseFloat(ballMassEl.value);
     document.getElementById('val-ball-mass').innerText = ballMassEl.value;
 
+    const scrollSpeedEl = document.getElementById('slider-scroll-speed');
+    if (scrollSpeedEl) {
+        levelObj.scrollSpeed = parseFloat(scrollSpeedEl.value);
+        document.getElementById('val-scroll-speed').innerText = levelObj.scrollSpeed.toFixed(1);
+    }
+
     // Launch Velocity
     ['slider-vel-x', 'slider-vel-y'].forEach(id => {
         const el = document.getElementById(id);
@@ -71,7 +79,9 @@ function initSliders() {
         { id: 'slider-sandbox-tension', lab: 'val-sandbox-tension', type: 'tension', config: UI_CONFIG.sandbox.tension },
         { id: 'slider-sandbox-rigidity', lab: 'val-sandbox-rigidity', type: 'rigidity', config: UI_CONFIG.sandbox.rigidity },
         { id: 'slider-sandbox-segment', lab: 'val-sandbox-segment', type: 'segment', config: UI_CONFIG.sandbox.segment },
-        { id: 'slider-sandbox-mass', lab: 'val-sandbox-mass', type: 'mass', config: UI_CONFIG.sandbox.mass }
+        { id: 'slider-sandbox-mass', lab: 'val-sandbox-mass', type: 'mass', config: UI_CONFIG.sandbox.mass },
+        { id: 'slider-sandbox-bendAngleLimit', lab: 'val-sandbox-bendAngleLimit', type: 'bendAngleLimit', config: UI_CONFIG.sandbox.bendAngleLimit },
+        { id: 'slider-sandbox-bendingStiffness', lab: 'val-sandbox-bendingStiffness', type: 'bendingStiffness', config: UI_CONFIG.sandbox.bendingStiffness }
     ];
 
     sandboxMap.forEach(item => {
@@ -110,6 +120,12 @@ function updateHUDLabel(sliderId, labelId, type) {
         case 'mass':
             text = val.toFixed(2);
             break;
+        case 'bendAngleLimit':
+            text = Math.round(val) + "°";
+            break;
+        case 'bendingStiffness':
+            text = val.toFixed(2);
+            break;
         default:
             text = val.toString();
     }
@@ -121,7 +137,9 @@ const sandboxIds = [
     'slider-sandbox-tension',
     'slider-sandbox-rigidity',
     'slider-sandbox-segment',
-    'slider-sandbox-mass'
+    'slider-sandbox-mass',
+    'slider-sandbox-bendAngleLimit',
+    'slider-sandbox-bendingStiffness'
 ];
 
 
@@ -149,32 +167,17 @@ levelObj.updateUIElements = function() {
 
     const btnDrop = document.getElementById('btn-drop');
     if (btnDrop) btnDrop.disabled = isDropped;
+
+    const btnStartGame = document.getElementById('btn-start-game');
+    if (btnStartGame) {
+        btnStartGame.disabled = !isSimulating;
+        btnStartGame.textContent = levelObj.isGameMode ? "Pause Scroll" : "Start Scroll";
+    }
 };
 
 initSliders();
 levelObj.initLevel();
 levelObj.updateUIElements();
-
-// Wire up weight button mouse/touch events
-const weightBtn = document.getElementById('btn-increase-weight');
-
-if (weightBtn) {
-    const startIncrease = (e) => {
-        e.preventDefault();
-        levelObj.isIncreasingWeight = true;
-    };
-    const stopIncrease = (e) => {
-        e.preventDefault();
-        levelObj.isIncreasingWeight = false;
-    };
-
-    weightBtn.addEventListener('mousedown', startIncrease);
-    weightBtn.addEventListener('touchstart', startIncrease, { passive: false });
-
-    weightBtn.addEventListener('mouseup', stopIncrease);
-    weightBtn.addEventListener('mouseleave', stopIncrease);
-    weightBtn.addEventListener('touchend', stopIncrease, { passive: false });
-}
 
 // UI Event Binding
 const btnStart = document.getElementById('btn-start');
@@ -195,6 +198,13 @@ const btnDrop = document.getElementById('btn-drop');
 if (btnDrop) {
     btnDrop.addEventListener('click', () => {
         levelObj.dropBall();
+    });
+}
+
+const btnStartGame = document.getElementById('btn-start-game');
+if (btnStartGame) {
+    btnStartGame.addEventListener('click', () => {
+        levelObj.toggleGameMode();
     });
 }
 
@@ -240,9 +250,9 @@ if (endlessCheckbox) {
 
 // Default rope constants
 const DEFAULT_ROPE_SETTINGS = {
-    twine: { strength: 1.15, tension: 1.10, rigidity: 150, segment: 15, mass: 0.05 },
-    rope: { strength: 1.45, tension: 1.00, rigidity: 300, segment: 20, mass: 0.20 },
-    steel: { strength: 3.00, tension: 0.95, rigidity: 500, segment: 25, mass: 0.80 }
+    twine: { strength: 1.15, tension: 1.10, rigidity: 150, segment: 4, mass: 0.05, bendAngleLimit: 150, bendingStiffness: 0.10 },
+    rope: { strength: 1.45, tension: 1.00, rigidity: 300, segment: 5, mass: 0.20, bendAngleLimit: 90, bendingStiffness: 0.40 },
+    steel: { strength: 3.00, tension: 0.95, rigidity: 500, segment: 6, mass: 0.80, bendAngleLimit: 20, bendingStiffness: 0.80 }
 };
 
 // Mutable active settings for each rope type
@@ -260,6 +270,8 @@ if (ropeTypeSelect) {
             document.getElementById('slider-sandbox-rigidity').value = typePreset.rigidity;
             document.getElementById('slider-sandbox-segment').value = typePreset.segment;
             document.getElementById('slider-sandbox-mass').value = typePreset.mass;
+            document.getElementById('slider-sandbox-bendAngleLimit').value = typePreset.bendAngleLimit;
+            document.getElementById('slider-sandbox-bendingStiffness').value = typePreset.bendingStiffness;
 
             // Update all the sandbox labels in the HUD
             updateHUDLabel('slider-sandbox-strength', 'val-sandbox-strength', 'strength');
@@ -267,6 +279,8 @@ if (ropeTypeSelect) {
             updateHUDLabel('slider-sandbox-rigidity', 'val-sandbox-rigidity', 'rigidity');
             updateHUDLabel('slider-sandbox-segment', 'val-sandbox-segment', 'segment');
             updateHUDLabel('slider-sandbox-mass', 'val-sandbox-mass', 'mass');
+            updateHUDLabel('slider-sandbox-bendAngleLimit', 'val-sandbox-bendAngleLimit', 'bendAngleLimit');
+            updateHUDLabel('slider-sandbox-bendingStiffness', 'val-sandbox-bendingStiffness', 'bendingStiffness');
         }
     });
 }
@@ -311,6 +325,15 @@ document.getElementById('slider-ball-mass').addEventListener('input', (e) => {
     }
     document.getElementById('val-ball-mass').innerText = val;
 });
+
+const scrollSpeedSlider = document.getElementById('slider-scroll-speed');
+if (scrollSpeedSlider) {
+    scrollSpeedSlider.addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value);
+        levelObj.scrollSpeed = val;
+        document.getElementById('val-scroll-speed').innerText = val.toFixed(1);
+    });
+}
 
 // Sandbox Listeners
 
@@ -361,6 +384,18 @@ sandboxIds.forEach(id => {
         } else if (type === 'segment') {
             // We only apply segment changes to NEW ropes to avoid deleting drawn ropes.
             // The segment length is already saved in ropeSettings and will be used by StructureBuilder.
+        } else if (type === 'bendAngleLimit') {
+            engine.constraints.forEach(c => {
+                if (c.ropeType === currentRopeType && c.setAngleLimit) {
+                    c.setAngleLimit(val);
+                }
+            });
+        } else if (type === 'bendingStiffness') {
+            engine.constraints.forEach(c => {
+                if (c.ropeType === currentRopeType && c.setAngleLimit) {
+                    c.stiffness = val;
+                }
+            });
         }
 
         updateHUDLabel(id, `val-sandbox-${type}`, type);

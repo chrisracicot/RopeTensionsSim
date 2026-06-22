@@ -1,0 +1,61 @@
+Walls to jump over
+Platforms to jump off of
+zig zag walls
+holes
+vertical portals
+horizontal portals
+moving walls, platforms, etc. 
+winds and tornados
+sticky walls
+trigger based events
+rope swinging
+cut rope to move to a lower platform
+Sticky walls
+
+
+
+These are fantastic features that will turn a basic physics simulation into a rich, interactive puzzle-platformer. 
+
+To support these, you can extend your existing core classes (`VerletEngine`, `CollisionResolver`, and `LevelManager`) using the following architectural patterns:
+
+---
+
+### 1. Geometry & Collision Extensions
+*(Walls, Zig Zag Walls, Platforms, Holes, Sticky Walls)*
+
+Currently, your collision engine only handles circle-to-circle and circle-to-line (rope) collisions. To add static walls, platforms, and holes:
+* **Representing Walls and Platforms**: 
+  Define a `StaticBoundary` or `Collider` class that represents a line segment, box, or polygon (for zig-zag walls).
+* **Adding Collision Code**: 
+  Add `resolveCircleLine` to [CollisionResolver.js](file:///c:/workspace/ropeSwing/js/physics/CollisionResolver.js). Check if the ball collides with static walls and resolve the overlap just like you do with rope segments, but treat the wall as infinitely heavy (`isPinned = true`).
+* **Sticky Walls**:
+  Add a property like `isSticky` to your wall data. If the ball collides with a sticky wall, set its current velocity to zero (`node.oldPosition = node.position`) or temporarily pin it in place until the user applies a jump force.
+* **Holes**:
+  Define circular/rectangular areas. If the ball is inside the boundary of a hole, trigger a failure/reset state in `LevelManager`.
+
+---
+
+### 2. Interactive Zones & Forces
+*(Portals, Wind & Tornadoes, Trigger Events)*
+
+These features don't require solid physical collisions; instead, they check if the player's coordinate is inside a bounding region.
+* **Portals**:
+  1. Define a pair of portals: Portal A (Entry) and Portal B (Exit).
+  2. In your update loop, check if the ball's position is close to Portal A's position.
+  3. If yes, translate the ball's coordinates to Portal B's coordinates (`node.position = PortalB.position`), and maintain or rotate its velocity vector (`position - oldPosition`) to match the portal's orientation.
+* **Winds & Tornadoes (Force Fields)**:
+  1. Define a force-field zone (e.g., a rectangular bounding box for wind or circular area for a tornado).
+  2. Inside `VerletEngine.js` before updating node positions, check if the dynamic nodes are inside the force field.
+  3. If they are, apply a force vector directly to the node's position (e.g., `node.position.x += windForce * deltaTime`).
+* **Trigger-Based Events**:
+  Define a `TriggerZone` class (an invisible box). When the ball enters, it invokes a callback function (e.g., triggering a moving platform to start, opening a gate, or spawning a new anchor point).
+
+---
+
+### 3. Gameplay Mechanics
+*(Moving platforms, Rope cutting, Rope swinging)*
+
+* **Moving Walls / Platforms**:
+  Instead of static coordinates, update the positions of the platform anchors or wall vertices in the `LevelManager.update()` loop (e.g., moving them back and forth using a sine wave: `x = startX + Math.sin(time) * amplitude`). The collision system will automatically push the ball out of the way!
+* **Cutting Ropes**:
+  Allow players to click/tap or swipe across a rope segment to break it. You can check if the mouse/touch drag line intersects any `DistanceConstraint` in `VerletEngine`, and if it does, set `constraint.isBroken = true` (or remove it from the constraints list) so the ball swings downward.

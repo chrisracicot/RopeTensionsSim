@@ -12,6 +12,8 @@ class RopeRenderer {
 
         for (let i = 0; i < engine.constraints.length; i++) {
             let c = engine.constraints[i];
+            
+            if (c.ropeType === 'mouse') continue;
 
             // Visual thickness based on rope type
             let maxThick = 4;
