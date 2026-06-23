@@ -34,6 +34,9 @@
                         <button id="btn-reset-properties"
                             style="width: 100%; font-size: 0.85rem; padding: 6px 12px; background-color: #233554; border: 1px solid #64ffda; color: #64ffda;">Reset
                             Properties</button>
+                        <button id="btn-save-settings"
+                            style="width: 100%; font-size: 0.85rem; padding: 6px 12px; background-color: #112240; border: 1px solid #64ffda; color: #64ffda; margin-top: 4px;">Save
+                            Settings</button>
                     </div>
 
                     <div class="physics-settings">
@@ -41,12 +44,20 @@
                             style="font-size: 0.9rem; color: #64ffda; margin-bottom: 5px; border-bottom: 1px solid #3a4b66; padding-bottom: 3px; text-transform: uppercase;">
                             Global Physics</h3>
                         <div class="setting-item">
-                            <label>Gravity: <span id="val-gravity">100%</span></label>
-                            <input type="range" id="slider-gravity" min="0" max="2" step="0.01" value="1">
+                            <label>Rope Gravity: <span id="val-gravity">100%</span></label>
+                            <input type="range" id="slider-gravity" min="0" max="10" step="0.01" value="1">
+                        </div>
+                        <div class="setting-item">
+                            <label>Ball Gravity: <span id="val-ball-gravity">100%</span></label>
+                            <input type="range" id="slider-ball-gravity" min="0" max="2" step="0.01" value="1">
                         </div>
                         <div class="setting-item">
                             <label>Engine Iterations: <span id="val-iterations">50</span></label>
                             <input type="range" id="slider-iterations" min="10" max="100" step="1" value="50">
+                        </div>
+                        <div class="setting-item">
+                            <label>Air Resistance: <span id="val-drag">0.8%</span></label>
+                            <input type="range" id="slider-drag" min="0" max="5" step="0.1" value="0.8">
                         </div>
                         <div class="setting-item">
                             <label>Launch X Velocity: <span id="val-vel-x">0.0</span></label>
@@ -77,6 +88,22 @@
                             <label for="checkbox-endless"
                                 style="margin: 0; cursor: pointer; display: inline; color: #64ffda; font-weight: bold;">Endless
                                 Simulation</label>
+                        </div>
+                        <div class="setting-item"
+                            style="flex-direction: row; justify-content: flex-start; align-items: center; gap: 8px; border-top: 1px solid #3a4b66; padding-top: 5px;">
+                            <input type="checkbox" id="checkbox-gravity-mode"
+                                style="cursor: pointer; width: auto; margin: 0;">
+                            <label for="checkbox-gravity-mode"
+                                style="margin: 0; cursor: pointer; display: inline; color: #64ffda; font-weight: bold;">Gravity
+                                Control Mode</label>
+                        </div>
+                        <div class="setting-item" id="item-gravity-type" style="display: none;">
+                            <label for="select-gravity-type">Gravity Type</label>
+                            <select id="select-gravity-type"
+                                style="width: 100%; background-color: #112240; color: #ccd6f6; border: 1px solid #3a4b66; padding: 6px; border-radius: 4px; font-family: inherit; cursor: pointer;">
+                                <option value="vector" selected>Global Vector (Directional)</option>
+                                <option value="attractor">Point Attractor (Click Location)</option>
+                            </select>
                         </div>
                     </div>
 
@@ -123,13 +150,16 @@
                         </div>
 
                         <div class="setting-item">
-                            <label>Max Bend Deflection (Degrees): <span id="val-sandbox-bendAngleLimit">90</span></label>
-                            <input type="range" id="slider-sandbox-bendAngleLimit" min="0" max="180" step="1" value="90">
+                            <label>Max Bend Deflection (Degrees): <span
+                                    id="val-sandbox-bendAngleLimit">90</span></label>
+                            <input type="range" id="slider-sandbox-bendAngleLimit" min="0" max="180" step="1"
+                                value="90">
                         </div>
 
                         <div class="setting-item">
                             <label>Bending Stiffness: <span id="val-sandbox-bendingStiffness">0.40</span></label>
-                            <input type="range" id="slider-sandbox-bendingStiffness" min="0.00" max="5.00" step="0.05" value="0.40">
+                            <input type="range" id="slider-sandbox-bendingStiffness" min="0.00" max="5.00" step="0.05"
+                                value="0.40">
                         </div>
                     </div>
                 </div>

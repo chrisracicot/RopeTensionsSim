@@ -3,6 +3,9 @@ class VerletEngine {
         this.nodes = [];
         this.constraints = [];
         this.gravity = new Vector2(0, gravityY);
+        this.ballGravity = new Vector2(0, gravityY);
+        this.gravityAttractorPoint = null;
+        this.drag = 0.992;
         this.iterations = 50; // Increased to 50 for higher stiffness and faster propagation
         this.timeStep = 0.016; // Assuming ~60fps
         this.fixedDeltaTimeSq = this.timeStep * this.timeStep;
@@ -22,7 +25,7 @@ class VerletEngine {
     }
 
     update(vehicleNode = null) {
-        this.simulate();
+        this.simulate(vehicleNode);
 
         // Reset tension tracking for this frame
         for (let j = 0; j < this.constraints.length; j++) {
@@ -54,7 +57,7 @@ class VerletEngine {
         // Force-based breaking (Single-Snap Rule) is disabled. Ropes can stretch infinitely.
     }
 
-    simulate() {
+    simulate(vehicleNode = null) {
         // Apply forces (gravity)
         for (let i = 0; i < this.nodes.length; i++) {
             let node = this.nodes[i];
@@ -64,9 +67,31 @@ class VerletEngine {
             let tempX = node.position.x;
             let tempY = node.position.y;
 
+            let g;
+            if (node === vehicleNode) {
+                g = this.ballGravity;
+            } else {
+                g = this.gravity;
+                if (this.gravityAttractorPoint) {
+                    const dir = this.gravityAttractorPoint.sub(node.position);
+                    const dist = dir.mag();
+                    if (dist > 0.1) {
+                        g = dir.div(dist).mul(this.gravity.mag());
+                    } else {
+                        g = new Vector2(0, 0);
+                    }
+                }
+            }
+
+            // Apply drag to bleed off kinetic energy over time
+            const drag = this.drag;
+            const vx = (node.position.x - node.oldPosition.x) * drag;
+            const vy = (node.position.y - node.oldPosition.y) * drag;
+
             // next_pos = cur_pos + (cur_pos - old_pos) + acceleration * dt * dt
-            node.position.x += (node.position.x - node.oldPosition.x) + (this.gravity.x * node.gravityScale) * this.fixedDeltaTimeSq;
-            node.position.y += (node.position.y - node.oldPosition.y) + (this.gravity.y * node.gravityScale) * this.fixedDeltaTimeSq;
+            node.position.x += vx + (g.x * node.gravityScale) * this.fixedDeltaTimeSq;
+            node.position.y += vy + (g.y * node.gravityScale) * this.fixedDeltaTimeSq;
+
 
             node.oldPosition.x = tempX;
             node.oldPosition.y = tempY;

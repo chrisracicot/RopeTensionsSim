@@ -25,10 +25,15 @@ class LevelManager {
         // Default simulation settings
         this.settings = {
             gravity: 10.0,
+            ballGravity: 10.0,
             velX: 0.0,
             velY: 0.0,
-            ballMass: 50.0
+            ballMass: 50.0,
+            drag: 0.008
         };
+        this.gravityControlMode = false;
+        this.gravityType = 'vector';
+        this.isDraggingGravity = false;
     }
 
     initLevel() {
@@ -77,7 +82,14 @@ class LevelManager {
         this.engine.addNode(this.vehicle);
 
         // Update engine gravity (scaled for realistic feel)
-        this.engine.gravity.y = this.settings.gravity * 25.0;
+        if (!this.gravityControlMode) {
+            this.engine.gravity.x = 0;
+            this.engine.gravity.y = this.settings.gravity * 25.0;
+            this.engine.gravityAttractorPoint = null;
+        }
+        this.engine.ballGravity.x = 0;
+        this.engine.ballGravity.y = this.settings.ballGravity * 25.0;
+        this.engine.drag = 1.0 - this.settings.drag;
 
         this.simulationFrames = 0;
         this.stableFrames = 0;
@@ -115,14 +127,27 @@ class LevelManager {
     }
 
     dropBall() {
-        if (this.ballDropped) return;
-        this.ballDropped = true;
+        // If a ball was already dropped, remove it first
+        if (this.vehicle) {
+            const idx = this.engine.nodes.indexOf(this.vehicle);
+            if (idx !== -1) {
+                this.engine.nodes.splice(idx, 1);
+            }
+        }
+
+        // Spawn vehicle at starting position (horizontal center, Y=50)
+        const canvasEl = document.getElementById('game-canvas');
+        const startX = canvasEl ? canvasEl.width / 2 : 400;
+        this.vehicle = new VerletNode(startX, 50);
+        this.vehicle.mass = this.settings.ballMass;
+        this.vehicle.radius = 22; // Hardcoded radius for standard 50 mass
 
         // Apply starting velocities dynamically when launched
-        if (this.vehicle) {
-            this.vehicle.oldPosition.x = this.vehicle.position.x - (this.settings.velX * 0.016);
-            this.vehicle.oldPosition.y = this.vehicle.position.y - (this.settings.velY * 0.016);
-        }
+        this.vehicle.oldPosition.x = this.vehicle.position.x - (this.settings.velX * 0.016);
+        this.vehicle.oldPosition.y = this.vehicle.position.y - (this.settings.velY * 0.016);
+
+        this.engine.addNode(this.vehicle);
+        this.ballDropped = true;
 
         if (this.state !== 'SIMULATE') {
             this.state = 'SIMULATE';
@@ -369,7 +394,7 @@ class LevelManager {
         // Draw Ground Line
         ctx.beginPath();
         ctx.moveTo(0, 595);
-        ctx.lineTo(800, 595);
+        ctx.lineTo(ctx.canvas.width, 595);
         ctx.strokeStyle = '#555';
         ctx.lineWidth = 2;
         ctx.stroke();
@@ -384,10 +409,94 @@ class LevelManager {
             ctx.lineWidth = 2;
             ctx.stroke();
         }
+
+        // Draw Gravity Control Indicators
+        if (this.gravityControlMode) {
+            if (this.gravityType === 'vector') {
+                // Draw a sleek compass HUD in the top-right corner
+                const compassX = ctx.canvas.width - 60;
+                const compassY = 60;
+
+                // Outer ring
+                ctx.beginPath();
+                ctx.arc(compassX, compassY, 25, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(100, 255, 218, 0.4)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Inner dashed circle
+                ctx.beginPath();
+                ctx.arc(compassX, compassY, 15, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(100, 255, 218, 0.2)';
+                ctx.setLineDash([2, 2]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Vector line pointing in gravity direction
+                const dir = this.engine.gravity.normalize();
+                if (dir.mag() > 0) {
+                    ctx.beginPath();
+                    ctx.moveTo(compassX, compassY);
+                    ctx.lineTo(compassX + dir.x * 20, compassY + dir.y * 20);
+                    ctx.strokeStyle = '#64ffda';
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+
+                    // Arrowhead
+                    const angle = Math.atan2(dir.y, dir.x);
+                    ctx.beginPath();
+                    ctx.moveTo(compassX + dir.x * 20, compassY + dir.y * 20);
+                    ctx.lineTo(compassX + dir.x * 20 - 6 * Math.cos(angle - Math.PI / 6), compassY + dir.y * 20 - 6 * Math.sin(angle - Math.PI / 6));
+                    ctx.lineTo(compassX + dir.x * 20 - 6 * Math.cos(angle + Math.PI / 6), compassY + dir.y * 20 - 6 * Math.sin(angle + Math.PI / 6));
+                    ctx.fillStyle = '#64ffda';
+                    ctx.fill();
+                }
+
+                // HUD Label
+                ctx.fillStyle = '#64ffda';
+                ctx.font = '10px Outfit, Inter, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText("GRAVITY DIR", compassX, compassY + 40);
+            } else if (this.gravityType === 'attractor' && this.engine.gravityAttractorPoint) {
+                const pt = this.engine.gravityAttractorPoint;
+
+                // Target core
+                ctx.beginPath();
+                ctx.arc(pt.x, pt.y, 6, 0, Math.PI * 2);
+                ctx.fillStyle = '#ff3366';
+                ctx.fill();
+
+                // Pulsing ring
+                const pulseRadius = 6 + (Date.now() % 1000) / 1000 * 24;
+                const alpha = 1.0 - (Date.now() % 1000) / 1000;
+                ctx.beginPath();
+                ctx.arc(pt.x, pt.y, pulseRadius, 0, Math.PI * 2);
+                ctx.strokeStyle = `rgba(255, 51, 102, ${alpha})`;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Dotted crosshair lines
+                ctx.strokeStyle = 'rgba(255, 51, 102, 0.4)';
+                ctx.setLineDash([2, 4]);
+                ctx.beginPath();
+                ctx.moveTo(pt.x - 20, pt.y);
+                ctx.lineTo(pt.x + 20, pt.y);
+                ctx.moveTo(pt.x, pt.y - 20);
+                ctx.lineTo(pt.x, pt.y + 20);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+        }
     }
 
     handleMouseDown(v) {
         if (this.state !== 'SIMULATE') return;
+
+        if (this.gravityControlMode) {
+            this.isDraggingGravity = true;
+            this.updateGravityFromMouse(v);
+            return;
+        }
 
         // Prevent dragging if clicking near an anchor point
         for (let a of this.builder.anchors) {
@@ -413,11 +522,11 @@ class LevelManager {
 
         if (nearestNode) {
             this.draggedNode = nearestNode;
-            
+
             // Create a virtual node representing the mouse (pinned)
             this.mouseNode = new VerletNode(v.x, v.y, true);
             this.mouseNode.mass = 1.0;
-            
+
             // Create a temporary distance constraint linking mouseNode to draggedNode
             this.mouseConstraint = new DistanceConstraint(this.mouseNode, this.draggedNode, {
                 rigidity: 200,
@@ -454,6 +563,10 @@ class LevelManager {
     }
 
     handleMouseMove(v) {
+        if (this.gravityControlMode && this.isDraggingGravity) {
+            this.updateGravityFromMouse(v);
+            return;
+        }
         if (this.draggedNode) {
             let dv = v.sub(this.mouseNode.position);
             let neighbors = this.getNeighbors(this.draggedNode);
@@ -602,6 +715,10 @@ class LevelManager {
     }
 
     handleMouseUp(v) {
+        if (this.gravityControlMode && this.isDraggingGravity) {
+            this.isDraggingGravity = false;
+            return;
+        }
         if (this.draggedNode) {
             if (this.mouseConstraint) {
                 let idx = this.engine.constraints.indexOf(this.mouseConstraint);
@@ -614,6 +731,26 @@ class LevelManager {
             this.mouseConstraint = null;
             this.dragSlideAccumulator = 0;
             this.dragSlideDirection = null;
+        }
+    }
+
+    updateGravityFromMouse(v) {
+        if (this.gravityType === 'vector') {
+            const canvasEl = document.getElementById('game-canvas');
+            const cx = canvasEl ? canvasEl.width / 2 : 400;
+            const cy = canvasEl ? canvasEl.height / 2 : 300;
+            const center = new Vector2(cx, cy);
+            let dir = v.sub(center);
+            const mag = this.settings.gravity * 25.0;
+            if (dir.mag() > 0) {
+                dir = dir.normalize();
+                this.engine.gravity = dir.mul(mag);
+            } else {
+                this.engine.gravity = new Vector2(0, mag);
+            }
+            this.engine.gravityAttractorPoint = null;
+        } else if (this.gravityType === 'attractor') {
+            this.engine.gravityAttractorPoint = v.copy();
         }
     }
 }
