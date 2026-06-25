@@ -7,6 +7,7 @@ export default class VerletEngine {
         this.constraints = [];
         this.gravity = new Vector2(0, gravityY);
         this.ballGravity = new Vector2(0, gravityY);
+        this.gravityAttractorPoint = null;
         this.drag = 0.992;
         this.iterations = 50; // Increased to 50 for higher stiffness and faster propagation
         this.timeStep = 0.016; // Assuming ~60fps
@@ -72,6 +73,15 @@ export default class VerletEngine {
                 g = this.ballGravity;
             } else {
                 g = this.gravity;
+                if (this.gravityAttractorPoint) {
+                    const dir = this.gravityAttractorPoint.sub(node.position);
+                    const dist = dir.mag();
+                    if (dist > 0.1) {
+                        g = dir.div(dist).mul(this.gravity.mag());
+                    } else {
+                        g = new Vector2(0, 0);
+                    }
+                }
             }
 
             // Apply drag to bleed off kinetic energy over time

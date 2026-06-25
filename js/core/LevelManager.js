@@ -29,6 +29,8 @@ export default class LevelManager {
             ballMass: 50.0,
             drag: 0.008
         };
+        this.gravityControlMode = false;
+        this.gravityType = 'vector';
     }
 
     initLevel() {
@@ -40,20 +42,28 @@ export default class LevelManager {
         this.nextSpawnDistance = 0;
 
         // Add static anchors on the Y-level
-        const anchor1 = new WorldAnchor(150, 350);
-        const anchor2 = new WorldAnchor(700, 350);
+        const anchor1 = new WorldAnchor(81.25, 350);
+        const anchor2 = new WorldAnchor(356.25, 350);
         this.addAnchor(anchor1);
         this.addAnchor(anchor2);
 
-        // Pre-place rope between the two anchors
-        const settings = this.builder.getSandboxSettings();
-        const totalDist = anchor1.position.distanceTo(anchor2.position);
-        const numSegments = Math.max(1, Math.floor(totalDist / settings.segmentLength));
-        this.builder.buildRope(anchor1, anchor2, null, numSegments, settings);
+        const anchor3 = new WorldAnchor(643.75, 350);
+        const anchor4 = new WorldAnchor(918.75, 350);
+        this.addAnchor(anchor3);
+        this.addAnchor(anchor4);
 
-        // Spawn vehicle at horizontal center
-        const canvasEl = document.getElementById('game-canvas');
-        const startX = canvasEl ? canvasEl.width / 2 : 400;
+        // Pre-place rope between the two sets of anchors
+        const settings = this.builder.getSandboxSettings();
+        const dist1 = anchor1.position.distanceTo(anchor2.position);
+        const numSegments1 = Math.max(1, Math.floor(dist1 / settings.segmentLength));
+        this.builder.buildRope(anchor1, anchor2, null, numSegments1, settings);
+
+        const dist2 = anchor3.position.distanceTo(anchor4.position);
+        const numSegments2 = Math.max(1, Math.floor(dist2 / settings.segmentLength));
+        this.builder.buildRope(anchor3, anchor4, null, numSegments2, settings);
+
+        // Spawn vehicle above the first pair of anchors
+        const startX = (anchor1.position.x + anchor2.position.x) / 2;
         this.vehicle = new VerletNode(startX, 50);
         this.vehicle.mass = this.settings.ballMass;
         this.vehicle.radius = 22; // Hardcoded radius for standard 50 mass
@@ -65,9 +75,11 @@ export default class LevelManager {
         this.engine.addNode(this.vehicle);
 
         // Update engine gravity (scaled for realistic feel)
-        this.engine.gravity.x = 0;
-        this.engine.gravity.y = this.settings.gravity * 25.0;
-        this.engine.gravityAttractorPoint = null;
+        if (!this.gravityControlMode) {
+            this.engine.gravity.x = 0;
+            this.engine.gravity.y = this.settings.gravity * 25.0;
+            this.engine.gravityAttractorPoint = null;
+        }
         this.engine.ballGravity.x = 0;
         this.engine.ballGravity.y = this.settings.ballGravity * 25.0;
         this.engine.drag = 1.0 - this.settings.drag;
@@ -116,7 +128,10 @@ export default class LevelManager {
         }
 
         const canvasEl = document.getElementById('game-canvas');
-        const startX = canvasEl ? canvasEl.width / 2 : 400;
+        let startX = canvasEl ? canvasEl.width / 2 : 400;
+        if (this.builder.anchors && this.builder.anchors.length >= 2) {
+            startX = (this.builder.anchors[0].position.x + this.builder.anchors[1].position.x) / 2;
+        }
         this.vehicle = new VerletNode(startX, 50);
         this.vehicle.mass = this.settings.ballMass;
         this.vehicle.radius = 22;
@@ -196,7 +211,10 @@ export default class LevelManager {
 
             if (!this.ballDropped && this.vehicle) {
                 const canvasEl = document.getElementById('game-canvas');
-                const startX = canvasEl ? canvasEl.width / 2 : 400;
+                let startX = canvasEl ? canvasEl.width / 2 : 400;
+                if (this.builder.anchors && this.builder.anchors.length >= 2) {
+                    startX = (this.builder.anchors[0].position.x + this.builder.anchors[1].position.x) / 2;
+                }
                 this.vehicle.position.x = startX;
                 this.vehicle.position.y = 50;
                 this.vehicle.oldPosition.x = startX;

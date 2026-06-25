@@ -77,6 +77,17 @@
                             <input type="checkbox" id="checkbox-endless" checked>
                             <label for="checkbox-endless" class="label-cyan">Endless Simulation</label>
                         </div>
+                        <div class="setting-item divider-top setting-row-layout">
+                            <input type="checkbox" id="checkbox-gravity-mode">
+                            <label for="checkbox-gravity-mode" class="label-cyan">Gravity Control Mode</label>
+                        </div>
+                        <div class="setting-item" id="item-gravity-type" style="display: none;">
+                            <label for="select-gravity-type">Gravity Type</label>
+                            <select id="select-gravity-type" class="dropdown-select">
+                                <option value="vector" selected>Global Vector (Directional)</option>
+                                <option value="attractor">Point Attractor (Click Location)</option>
+                            </select>
+                        </div>
                     </div>
 
                     <div class="physics-settings" style="margin-top: 10px;">

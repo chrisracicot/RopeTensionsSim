@@ -22,9 +22,9 @@ export class UIManager {
     }
 
     init() {
-        this.loadFromLocalStorage();
         this.initSliders();
         this.bindEvents();
+        this.loadFromLocalStorage();
         this.updateUIElements();
     }
 
@@ -185,9 +185,27 @@ export class UIManager {
             btnStartGame.disabled = !isSimulating;
             btnStartGame.textContent = this.levelObj.isGameMode ? "Pause Scroll" : "Start Scroll";
         }
+
+        const gravityModeCheckbox = document.getElementById('checkbox-gravity-mode');
+        const gravityTypeItem = document.getElementById('item-gravity-type');
+        if (gravityModeCheckbox && gravityTypeItem) {
+            gravityModeCheckbox.checked = this.levelObj.gravityControlMode;
+            gravityTypeItem.style.display = this.levelObj.gravityControlMode ? 'flex' : 'none';
+        }
     }
 
     saveToLocalStorage() {
+        const currentRopeType = document.getElementById('select-rope-type')?.value || "rope";
+        if (this.ropeSettings[currentRopeType]) {
+            this.ropeSettings[currentRopeType].strength = parseFloat(document.getElementById('slider-sandbox-strength')?.value || "6.5");
+            this.ropeSettings[currentRopeType].tension = parseFloat(document.getElementById('slider-sandbox-tension')?.value || "1.0");
+            this.ropeSettings[currentRopeType].rigidity = parseFloat(document.getElementById('slider-sandbox-rigidity')?.value || "300");
+            this.ropeSettings[currentRopeType].segment = parseFloat(document.getElementById('slider-sandbox-segment')?.value || "5");
+            this.ropeSettings[currentRopeType].mass = parseFloat(document.getElementById('slider-sandbox-mass')?.value || "0.2");
+            this.ropeSettings[currentRopeType].bendAngleLimit = parseFloat(document.getElementById('slider-sandbox-bendAngleLimit')?.value || "90");
+            this.ropeSettings[currentRopeType].bendingStiffness = parseFloat(document.getElementById('slider-sandbox-bendingStiffness')?.value || "0.4");
+        }
+
         const globals = {
             gravity: document.getElementById('slider-gravity')?.value || "1",
             ballGravity: document.getElementById('slider-ball-gravity')?.value || "1",
@@ -198,10 +216,15 @@ export class UIManager {
             ballMass: document.getElementById('slider-ball-mass')?.value || "50",
             scrollSpeed: document.getElementById('slider-scroll-speed')?.value || "1.0",
             endless: document.getElementById('checkbox-endless')?.checked !== false,
-            ropeType: document.getElementById('select-rope-type')?.value || "rope"
+            ropeType: currentRopeType,
+            gravityMode: document.getElementById('checkbox-gravity-mode')?.checked || false,
+            gravityType: document.getElementById('select-gravity-type')?.value || "vector"
         };
         localStorage.setItem('ropeSwing_globals', JSON.stringify(globals));
         localStorage.setItem('ropeSwing_ropeSettings', JSON.stringify(this.ropeSettings));
+
+        // Apply these settings to the engine constraints/nodes immediately
+        this.applyRopeSettingsToEngine(currentRopeType);
         
         const saveBtn = document.getElementById('btn-save-settings');
         if (saveBtn) {
@@ -217,39 +240,101 @@ export class UIManager {
         }
     }
 
+    applyRopeSettingsToEngine(ropeType) {
+        const typePreset = this.ropeSettings[ropeType];
+        if (!typePreset) return;
+
+        // Apply strength
+        let actualStrain = (typePreset.strength >= UI_CONFIG.sandbox.strength.infiniteThreshold) ? Infinity : typePreset.strength;
+        this.engine.constraints.forEach(c => {
+            if (c.ropeType === ropeType) c.breakingStrain = actualStrain;
+        });
+
+        // Apply tension and rigidity (DistanceConstraint only)
+        this.engine.constraints.forEach(c => {
+            if (c.ropeType === ropeType && c.drawnLength !== undefined) {
+                c.tension = typePreset.tension;
+                c.restLength = c.drawnLength * typePreset.tension;
+                
+                c.rigidity = typePreset.rigidity;
+                if (c.rigidityToStiffness) {
+                    c.stiffness = c.rigidityToStiffness(typePreset.rigidity);
+                }
+            }
+        });
+
+        // Apply mass to nodes
+        this.engine.nodes.forEach(n => {
+            if (!n.isPinned && n !== this.levelObj.vehicle && n.ropeType === ropeType) {
+                n.mass = typePreset.mass;
+            }
+        });
+
+        // Recompute invMass values for constraints
+        this.engine.constraints.forEach(c => {
+            if (c.nodeA && c.nodeB) {
+                c.invMassA = c.nodeA.isPinned ? 0 : (1.0 / c.nodeA.mass);
+                if (c.invMassB !== undefined) {
+                    c.invMassB = c.nodeB.isPinned ? 0 : (1.0 / c.nodeB.mass);
+                }
+                if (c.invMassC !== undefined && c.nodeC) {
+                    c.invMassC = c.nodeC.isPinned ? 0 : (1.0 / c.nodeC.mass);
+                }
+            }
+        });
+
+        // Apply bendAngleLimit and bendingStiffness (BendingConstraint only)
+        this.engine.constraints.forEach(c => {
+            if (c.ropeType === ropeType && c.setAngleLimit !== undefined) {
+                c.setAngleLimit(typePreset.bendAngleLimit);
+                c.stiffness = typePreset.bendingStiffness;
+            }
+        });
+    }
+
     loadFromLocalStorage() {
         const globalsStr = localStorage.getItem('ropeSwing_globals');
         const ropeSettingsStr = localStorage.getItem('ropeSwing_ropeSettings');
         
-        if (globalsStr) {
-            const globals = JSON.parse(globalsStr);
-            if (document.getElementById('slider-gravity')) document.getElementById('slider-gravity').value = globals.gravity;
-            if (document.getElementById('slider-ball-gravity')) document.getElementById('slider-ball-gravity').value = globals.ballGravity;
-            if (document.getElementById('slider-iterations')) document.getElementById('slider-iterations').value = globals.iterations;
-            if (document.getElementById('slider-drag')) document.getElementById('slider-drag').value = globals.drag;
-            if (document.getElementById('slider-vel-x')) document.getElementById('slider-vel-x').value = globals.velX;
-            if (document.getElementById('slider-vel-y')) document.getElementById('slider-vel-y').value = globals.velY;
-            if (document.getElementById('slider-ball-mass')) document.getElementById('slider-ball-mass').value = globals.ballMass;
-            if (document.getElementById('slider-scroll-speed')) document.getElementById('slider-scroll-speed').value = globals.scrollSpeed;
-            if (document.getElementById('checkbox-endless')) document.getElementById('checkbox-endless').checked = globals.endless;
-            if (document.getElementById('select-rope-type')) document.getElementById('select-rope-type').value = globals.ropeType;
-            
-            this.levelObj.endlessMode = globals.endless;
-        }
-        
+        const setValAndDispatch = (id, val, evType = 'input') => {
+            const el = document.getElementById(id);
+            if (el) {
+                if (el.type === 'checkbox') el.checked = val;
+                else el.value = val;
+                el.dispatchEvent(new Event(evType));
+            }
+        };
+
         if (ropeSettingsStr) {
             this.ropeSettings = JSON.parse(ropeSettingsStr);
-            const currentRopeType = document.getElementById('select-rope-type')?.value || "rope";
-            const typePreset = this.ropeSettings[currentRopeType];
-            if (typePreset) {
-                if (document.getElementById('slider-sandbox-strength')) document.getElementById('slider-sandbox-strength').value = typePreset.strength;
-                if (document.getElementById('slider-sandbox-tension')) document.getElementById('slider-sandbox-tension').value = typePreset.tension;
-                if (document.getElementById('slider-sandbox-rigidity')) document.getElementById('slider-sandbox-rigidity').value = typePreset.rigidity;
-                if (document.getElementById('slider-sandbox-segment')) document.getElementById('slider-sandbox-segment').value = typePreset.segment;
-                if (document.getElementById('slider-sandbox-mass')) document.getElementById('slider-sandbox-mass').value = typePreset.mass;
-                if (document.getElementById('slider-sandbox-bendAngleLimit')) document.getElementById('slider-sandbox-bendAngleLimit').value = typePreset.bendAngleLimit;
-                if (document.getElementById('slider-sandbox-bendingStiffness')) document.getElementById('slider-sandbox-bendingStiffness').value = typePreset.bendingStiffness;
-            }
+        }
+
+        if (globalsStr) {
+            const globals = JSON.parse(globalsStr);
+            setValAndDispatch('slider-gravity', globals.gravity);
+            setValAndDispatch('slider-ball-gravity', globals.ballGravity);
+            setValAndDispatch('slider-iterations', globals.iterations);
+            setValAndDispatch('slider-drag', globals.drag);
+            setValAndDispatch('slider-vel-x', globals.velX);
+            setValAndDispatch('slider-vel-y', globals.velY);
+            setValAndDispatch('slider-ball-mass', globals.ballMass);
+            setValAndDispatch('slider-scroll-speed', globals.scrollSpeed);
+            setValAndDispatch('checkbox-endless', globals.endless, 'change');
+            setValAndDispatch('select-rope-type', globals.ropeType, 'change');
+            setValAndDispatch('checkbox-gravity-mode', globals.gravityMode || false, 'change');
+            setValAndDispatch('select-gravity-type', globals.gravityType || "vector", 'change');
+        }
+        
+        const currentRopeType = document.getElementById('select-rope-type')?.value || "rope";
+        const typePreset = this.ropeSettings[currentRopeType];
+        if (typePreset) {
+            setValAndDispatch('slider-sandbox-strength', typePreset.strength);
+            setValAndDispatch('slider-sandbox-tension', typePreset.tension);
+            setValAndDispatch('slider-sandbox-rigidity', typePreset.rigidity);
+            setValAndDispatch('slider-sandbox-segment', typePreset.segment);
+            setValAndDispatch('slider-sandbox-mass', typePreset.mass);
+            setValAndDispatch('slider-sandbox-bendAngleLimit', typePreset.bendAngleLimit);
+            setValAndDispatch('slider-sandbox-bendingStiffness', typePreset.bendingStiffness);
         }
     }
 
@@ -334,6 +419,9 @@ export class UIManager {
                     this.updateHUDLabel('slider-sandbox-mass', 'val-sandbox-mass', 'mass');
                     this.updateHUDLabel('slider-sandbox-bendAngleLimit', 'val-sandbox-bendAngleLimit', 'bendAngleLimit');
                     this.updateHUDLabel('slider-sandbox-bendingStiffness', 'val-sandbox-bendingStiffness', 'bendingStiffness');
+
+                    // Apply newly selected rope type preset settings to engine
+                    this.applyRopeSettingsToEngine(e.target.value);
                 }
             });
         }
@@ -359,6 +447,39 @@ export class UIManager {
             this.engine.ballGravity.y = this.levelObj.settings.ballGravity * 25.0;
             this.updateHUDLabel('slider-ball-gravity', 'val-ball-gravity', 'gravity');
         });
+
+        // Gravity Control Mode
+        const gravityModeCheckbox = document.getElementById('checkbox-gravity-mode');
+        const gravityTypeItem = document.getElementById('item-gravity-type');
+        const gravityTypeSelect = document.getElementById('select-gravity-type');
+
+        if (gravityModeCheckbox) {
+            gravityModeCheckbox.addEventListener('change', (e) => {
+                const isEnabled = e.target.checked;
+                this.levelObj.gravityControlMode = isEnabled;
+                if (gravityTypeItem) {
+                    gravityTypeItem.style.display = isEnabled ? 'flex' : 'none';
+                }
+                if (!isEnabled) {
+                    this.engine.gravity.x = 0;
+                    this.engine.gravity.y = this.levelObj.settings.gravity * 25.0;
+                    this.engine.gravityAttractorPoint = null;
+                } else {
+                    if (gravityTypeSelect) {
+                        this.levelObj.gravityType = gravityTypeSelect.value;
+                    }
+                }
+            });
+        }
+
+        if (gravityTypeSelect) {
+            gravityTypeSelect.addEventListener('change', (e) => {
+                this.levelObj.gravityType = e.target.value;
+                this.engine.gravityAttractorPoint = null;
+                this.engine.gravity.x = 0;
+                this.engine.gravity.y = this.levelObj.settings.gravity * 25.0;
+            });
+        }
 
         // Air Resistance / Drag Slider
         document.getElementById('slider-drag')?.addEventListener('input', (e) => {
@@ -437,14 +558,14 @@ export class UIManager {
                     });
                 } else if (type === 'tension') {
                     this.engine.constraints.forEach(c => {
-                        if (c.ropeType === currentRopeType) {
+                        if (c.ropeType === currentRopeType && c.drawnLength !== undefined) {
                             c.tension = val;
                             c.restLength = c.drawnLength * val;
                         }
                     });
                 } else if (type === 'rigidity') {
                     this.engine.constraints.forEach(c => {
-                        if (c.ropeType === currentRopeType) {
+                        if (c.ropeType === currentRopeType && c.drawnLength !== undefined) {
                             c.rigidity = val;
                             if (c.rigidityToStiffness) {
                                 c.stiffness = c.rigidityToStiffness(val);
@@ -458,18 +579,25 @@ export class UIManager {
                         }
                     });
                     this.engine.constraints.forEach(c => {
-                        c.invMassA = c.nodeA.isPinned ? 0 : (1.0 / c.nodeA.mass);
-                        c.invMassB = c.nodeB.isPinned ? 0 : (1.0 / c.nodeB.mass);
+                        if (c.nodeA && c.nodeB) {
+                            c.invMassA = c.nodeA.isPinned ? 0 : (1.0 / c.nodeA.mass);
+                            if (c.invMassB !== undefined) {
+                                c.invMassB = c.nodeB.isPinned ? 0 : (1.0 / c.nodeB.mass);
+                            }
+                            if (c.invMassC !== undefined && c.nodeC) {
+                                c.invMassC = c.nodeC.isPinned ? 0 : (1.0 / c.nodeC.mass);
+                            }
+                        }
                     });
                 } else if (type === 'bendAngleLimit') {
                     this.engine.constraints.forEach(c => {
-                        if (c.ropeType === currentRopeType && c.setAngleLimit) {
+                        if (c.ropeType === currentRopeType && c.setAngleLimit !== undefined) {
                             c.setAngleLimit(val);
                         }
                     });
                 } else if (type === 'bendingStiffness') {
                     this.engine.constraints.forEach(c => {
-                        if (c.ropeType === currentRopeType && c.setAngleLimit) {
+                        if (c.ropeType === currentRopeType && c.setAngleLimit !== undefined) {
                             c.stiffness = val;
                         }
                     });

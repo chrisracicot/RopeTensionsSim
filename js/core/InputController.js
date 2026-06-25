@@ -14,6 +14,7 @@ export class InputController {
         this.dragSlideDirection = null;
         this.dragSlideAccumulator = 0;
         this.dragStartPosition = null;
+        this.isDraggingGravity = false;
 
         this.setupListeners();
     }
@@ -27,7 +28,7 @@ export class InputController {
         });
 
         window.addEventListener('mousemove', (e) => {
-            if (this.levelObj.state === 'SIMULATE' && this.draggedNode) {
+            if (this.levelObj.state === 'SIMULATE' && (this.draggedNode || (this.levelObj.gravityControlMode && this.isDraggingGravity))) {
                 const rect = this.canvas.getBoundingClientRect();
                 const x = e.clientX - rect.left;
                 const y = e.clientY - rect.top;
@@ -59,6 +60,12 @@ export class InputController {
 
     handleMouseDown(v) {
         if (this.levelObj.state !== 'SIMULATE') return;
+
+        if (this.levelObj.gravityControlMode) {
+            this.isDraggingGravity = true;
+            this.updateGravityFromMouse(v);
+            return;
+        }
 
         // Prevent dragging if clicking near an anchor point
         for (let a of this.levelObj.builder.anchors) {
@@ -123,6 +130,11 @@ export class InputController {
     }
 
     handleMouseMove(v) {
+        if (this.levelObj.gravityControlMode && this.isDraggingGravity) {
+            this.updateGravityFromMouse(v);
+            return;
+        }
+
         if (this.draggedNode) {
             let dv = v.sub(this.mouseNode.position);
             let neighbors = this.getNeighbors(this.draggedNode);
@@ -257,6 +269,11 @@ export class InputController {
     }
 
     handleMouseUp(v) {
+        if (this.levelObj.gravityControlMode && this.isDraggingGravity) {
+            this.isDraggingGravity = false;
+            return;
+        }
+
         if (this.draggedNode) {
             if (this.mouseConstraint) {
                 let idx = this.engine.constraints.indexOf(this.mouseConstraint);
@@ -269,6 +286,26 @@ export class InputController {
             this.mouseConstraint = null;
             this.dragSlideAccumulator = 0;
             this.dragSlideDirection = null;
+        }
+    }
+
+    updateGravityFromMouse(v) {
+        if (this.levelObj.gravityType === 'vector') {
+            const canvasEl = this.canvas;
+            const cx = canvasEl ? canvasEl.width / 2 : 400;
+            const cy = canvasEl ? canvasEl.height / 2 : 300;
+            const center = new Vector2(cx, cy);
+            let dir = v.sub(center);
+            const mag = this.levelObj.settings.gravity * 25.0;
+            if (dir.mag() > 0) {
+                dir = dir.normalize();
+                this.engine.gravity = dir.mul(mag);
+            } else {
+                this.engine.gravity = new Vector2(0, mag);
+            }
+            this.engine.gravityAttractorPoint = null;
+        } else if (this.levelObj.gravityType === 'attractor') {
+            this.engine.gravityAttractorPoint = v.copy();
         }
     }
 }

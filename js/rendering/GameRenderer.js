@@ -54,6 +54,84 @@ export class GameRenderer {
             ctx.stroke();
         }
 
+        // Draw Gravity Control Indicators
+        if (this.levelObj.gravityControlMode) {
+            if (this.levelObj.gravityType === 'vector') {
+                // Draw a sleek compass HUD in the top-right corner
+                const compassX = canvas.width - 60;
+                const compassY = 60;
+
+                // Outer ring
+                ctx.beginPath();
+                ctx.arc(compassX, compassY, 25, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(100, 255, 218, 0.4)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Inner dashed circle
+                ctx.beginPath();
+                ctx.arc(compassX, compassY, 15, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(100, 255, 218, 0.2)';
+                ctx.setLineDash([2, 2]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Vector line pointing in gravity direction
+                const dir = this.engine.gravity.normalize();
+                if (dir.mag() > 0) {
+                    ctx.beginPath();
+                    ctx.moveTo(compassX, compassY);
+                    ctx.lineTo(compassX + dir.x * 20, compassY + dir.y * 20);
+                    ctx.strokeStyle = '#64ffda';
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+
+                    // Arrowhead
+                    const angle = Math.atan2(dir.y, dir.x);
+                    ctx.beginPath();
+                    ctx.moveTo(compassX + dir.x * 20, compassY + dir.y * 20);
+                    ctx.lineTo(compassX + dir.x * 20 - 6 * Math.cos(angle - Math.PI / 6), compassY + dir.y * 20 - 6 * Math.sin(angle - Math.PI / 6));
+                    ctx.lineTo(compassX + dir.x * 20 - 6 * Math.cos(angle + Math.PI / 6), compassY + dir.y * 20 - 6 * Math.sin(angle + Math.PI / 6));
+                    ctx.fillStyle = '#64ffda';
+                    ctx.fill();
+                }
+
+                // HUD Label
+                ctx.fillStyle = '#64ffda';
+                ctx.font = '10px Outfit, Inter, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText("GRAVITY DIR", compassX, compassY + 40);
+            } else if (this.levelObj.gravityType === 'attractor' && this.engine.gravityAttractorPoint) {
+                const pt = this.engine.gravityAttractorPoint;
+
+                // Target core
+                ctx.beginPath();
+                ctx.arc(pt.x, pt.y, 6, 0, Math.PI * 2);
+                ctx.fillStyle = '#ff3366';
+                ctx.fill();
+
+                // Pulsing ring
+                const pulseRadius = 6 + (Date.now() % 1000) / 1000 * 24;
+                const alpha = 1.0 - (Date.now() % 1000) / 1000;
+                ctx.beginPath();
+                ctx.arc(pt.x, pt.y, pulseRadius, 0, Math.PI * 2);
+                ctx.strokeStyle = `rgba(255, 51, 102, ${alpha})`;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Dotted crosshair lines
+                ctx.strokeStyle = 'rgba(255, 51, 102, 0.4)';
+                ctx.setLineDash([2, 4]);
+                ctx.beginPath();
+                ctx.moveTo(pt.x - 20, pt.y);
+                ctx.lineTo(pt.x + 20, pt.y);
+                ctx.moveTo(pt.x, pt.y - 20);
+                ctx.lineTo(pt.x, pt.y + 20);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+        }
+
         ctx.restore();
     }
 
