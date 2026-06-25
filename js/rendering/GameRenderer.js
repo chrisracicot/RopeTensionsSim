@@ -54,11 +54,6 @@ export class GameRenderer {
             ctx.stroke();
         }
 
-        // Draw trajectory arc prediction
-        if (this.inputController) {
-            this.inputController.drawTrajectory(ctx);
-        }
-
         ctx.restore();
     }
 

@@ -55,7 +55,6 @@ export class InputController {
         this.mouseConstraint = null;
         this.dragSlideDirection = null;
         this.dragSlideAccumulator = 0;
-        this.dragStartPosition = null;
     }
 
     handleMouseDown(v) {
@@ -87,7 +86,6 @@ export class InputController {
 
         if (nearestNode) {
             this.draggedNode = nearestNode;
-            this.dragStartPosition = nearestNode.position.copy();
 
             // Create virtual node for mouse
             this.mouseNode = new VerletNode(v.x, v.y, true);
@@ -271,43 +269,6 @@ export class InputController {
             this.mouseConstraint = null;
             this.dragSlideAccumulator = 0;
             this.dragSlideDirection = null;
-            this.dragStartPosition = null;
         }
-    }
-
-    drawTrajectory(ctx) {
-        if (!this.draggedNode || !this.dragStartPosition || !this.mouseNode) return;
-        if (!this.levelObj.vehicle) return;
-
-        // Launch origin
-        let startPos = this.levelObj.vehicle.position.copy();
-        
-        // Calculate displacement vector
-        let displacement = this.dragStartPosition.sub(this.mouseNode.position);
-        
-        // Multiplier to match physics scale
-        const forceScale = 0.15; 
-        let vel = displacement.mul(forceScale);
-
-        // Gravity acting on the ball
-        let gravityVal = this.levelObj.settings.ballGravity * 25.0;
-        let grav = new Vector2(0, gravityVal);
-
-        ctx.beginPath();
-        ctx.strokeStyle = 'rgba(255, 51, 102, 0.6)';
-        ctx.lineWidth = 3;
-        ctx.setLineDash([5, 5]);
-
-        let currentPos = startPos.copy();
-        ctx.moveTo(currentPos.x, currentPos.y);
-
-        const dt = 0.05; // Simulation step size
-        for (let i = 0; i < 30; i++) {
-            vel = vel.add(grav.mul(dt));
-            currentPos = currentPos.add(vel.mul(dt));
-            ctx.lineTo(currentPos.x, currentPos.y);
-        }
-        ctx.stroke();
-        ctx.setLineDash([]);
     }
 }
