@@ -1,10 +1,12 @@
-class VerletEngine {
+import Vector2 from './Vector2.js';
+import CollisionResolver from './CollisionResolver.js';
+
+export default class VerletEngine {
     constructor(gravityY = 9.8) {
         this.nodes = [];
         this.constraints = [];
         this.gravity = new Vector2(0, gravityY);
         this.ballGravity = new Vector2(0, gravityY);
-        this.gravityAttractorPoint = null;
         this.drag = 0.992;
         this.iterations = 50; // Increased to 50 for higher stiffness and faster propagation
         this.timeStep = 0.016; // Assuming ~60fps
@@ -53,8 +55,6 @@ class VerletEngine {
                 }
             }
         }
-
-        // Force-based breaking (Single-Snap Rule) is disabled. Ropes can stretch infinitely.
     }
 
     simulate(vehicleNode = null) {
@@ -72,15 +72,6 @@ class VerletEngine {
                 g = this.ballGravity;
             } else {
                 g = this.gravity;
-                if (this.gravityAttractorPoint) {
-                    const dir = this.gravityAttractorPoint.sub(node.position);
-                    const dist = dir.mag();
-                    if (dist > 0.1) {
-                        g = dir.div(dist).mul(this.gravity.mag());
-                    } else {
-                        g = new Vector2(0, 0);
-                    }
-                }
             }
 
             // Apply drag to bleed off kinetic energy over time
@@ -92,17 +83,13 @@ class VerletEngine {
             node.position.x += vx + (g.x * node.gravityScale) * this.fixedDeltaTimeSq;
             node.position.y += vy + (g.y * node.gravityScale) * this.fixedDeltaTimeSq;
 
-
             node.oldPosition.x = tempX;
             node.oldPosition.y = tempY;
 
-            // Basic floor collision - stop vertical movement when hitting ground
+            // Basic floor collision
             if (node.position.y > 600) {
                 node.position.y = 600;
-                // Zero out vertical velocity: set oldPosition.y to current position.y
                 node.oldPosition.y = node.position.y;
-
-                // Friction approximation for horizontal movement
                 node.position.x -= (node.position.x - node.oldPosition.x) * 0.2;
             }
         }

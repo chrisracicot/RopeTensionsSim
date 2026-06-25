@@ -245,3 +245,94 @@ button:disabled, input[type="range"]:disabled, select:disabled {
 .weight-btn:active {
     background-color: #e02453;
 }
+
+/* Refactored styles */
+.hud-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.button-row {
+    display: flex;
+    gap: 10px;
+}
+
+.button-row button {
+    flex: 1;
+}
+
+.full-width-btn {
+    width: 100%;
+}
+
+.btn-secondary {
+    font-size: 0.85rem;
+    padding: 6px 12px;
+    background-color: #233554;
+    border: 1px solid #64ffda;
+    color: #64ffda;
+}
+
+.btn-dark-save {
+    font-size: 0.85rem;
+    padding: 6px 12px;
+    background-color: #112240;
+    border: 1px solid #64ffda;
+    color: #64ffda;
+    margin-top: 4px;
+}
+
+.setting-title {
+    font-size: 0.9rem;
+    color: #64ffda;
+    margin-bottom: 5px;
+    border-bottom: 1px solid #3a4b66;
+    padding-bottom: 3px;
+    text-transform: uppercase;
+}
+
+.divider-top {
+    border-top: 1px solid #3a4b66;
+    padding-top: 5px;
+}
+
+.setting-row-layout {
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 8px;
+}
+
+.setting-row-layout input[type="checkbox"] {
+    cursor: pointer;
+    width: auto;
+    margin: 0;
+}
+
+.setting-row-layout label {
+    margin: 0;
+    cursor: pointer;
+    display: inline;
+    font-weight: bold;
+}
+
+.label-cyan {
+    color: #64ffda;
+}
+
+.label-pink {
+    color: #ff3366;
+}
+
+.dropdown-select {
+    width: 100%;
+    background-color: #112240;
+    color: #ccd6f6;
+    border: 1px solid #3a4b66;
+    padding: 6px;
+    border-radius: 4px;
+    font-family: inherit;
+    cursor: pointer;
+}

@@ -1,4 +1,4 @@
-class BendingConstraint {
+export default class BendingConstraint {
     constructor(nodeA, nodeB, nodeC, bendAngleLimitDegrees, stiffness = 0.5) {
         this.nodeA = nodeA;
         this.nodeB = nodeB; // Middle node

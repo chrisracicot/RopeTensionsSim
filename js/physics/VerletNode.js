@@ -1,4 +1,6 @@
-class VerletNode {
+import Vector2 from './Vector2.js';
+
+export default class VerletNode {
     constructor(x, y, isPinned = false) {
         this.position = new Vector2(x, y);
         this.oldPosition = new Vector2(x, y);

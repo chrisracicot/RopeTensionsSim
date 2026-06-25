@@ -1,4 +1,7 @@
-class WorldAnchor {
+import Vector2 from '../physics/Vector2.js';
+import VerletNode from '../physics/VerletNode.js';
+
+export default class WorldAnchor {
     constructor(x, y, radius = 5, isPulley = false) {
         this.position = new Vector2(x, y);
         this.radius = radius;

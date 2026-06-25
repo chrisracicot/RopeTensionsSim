@@ -1,4 +1,9 @@
-class StructureBuilder {
+import Vector2 from '../physics/Vector2.js';
+import VerletNode from '../physics/VerletNode.js';
+import DistanceConstraint from '../physics/DistanceConstraint.js';
+import BendingConstraint from '../physics/BendingConstraint.js';
+
+export default class StructureBuilder {
     constructor(engine, anchors) {
         this.engine = engine;
         this.anchors = anchors;
@@ -12,13 +17,13 @@ class StructureBuilder {
         const getVal = (id) => parseFloat(document.getElementById(id).value);
         let strength = getVal('slider-sandbox-strength');
 
-        // Infinite threshold check (Max range in UI is 6.5)
+        // Infinite threshold check
         if (strength >= 6.45) strength = Infinity;
 
         const ropeType = document.getElementById('select-rope-type')?.value || 'rope';
-        let color = [195, 160, 120]; // default standard rope (Light Brown/Tan)
-        if (ropeType === 'twine') color = [255, 200, 50]; // Twine (Yellow-Gold)
-        else if (ropeType === 'steel') color = [120, 180, 220]; // Steel Cable (Bright greyish-blue)
+        let color = [195, 160, 120]; // default standard rope
+        if (ropeType === 'twine') color = [255, 200, 50]; // Twine
+        else if (ropeType === 'steel') color = [120, 180, 220]; // Steel Cable
 
         return {
             strength: strength,
@@ -36,7 +41,6 @@ class StructureBuilder {
     getNearestAnchor(v, dist = 20) {
         let nearest = null;
         let minDist = dist;
-        // Check static anchors
         for (let a of this.anchors) {
             let d = a.position.distanceTo(v);
             if (d < minDist) {
@@ -44,13 +48,11 @@ class StructureBuilder {
                 nearest = a;
             }
         }
-        // Check dynamic nodes (joints)
         for (let n of this.engine.nodes) {
-            if (n.isPinned) continue; // Skip static anchor nodes, already handled
+            if (n.isPinned) continue;
             let d = n.position.distanceTo(v);
             if (d < minDist) {
                 minDist = d;
-                // Treat a node as an anchor point dynamically
                 nearest = { node: n, position: n.position, isDynamic: true };
             }
         }
@@ -59,7 +61,6 @@ class StructureBuilder {
 
     onMouseDown(v) {
         let anchor = this.getNearestAnchor(v);
-        // Only start from an anchor or existing joint to prevent floating ropes
         if (anchor) {
             this.isDrawing = true;
             this.startAnchor = anchor;
@@ -78,23 +79,17 @@ class StructureBuilder {
         this.isDrawing = false;
 
         let endAnchor = this.getNearestAnchor(v);
-
-        // Prevent tying to the exact same anchor
         if (endAnchor && endAnchor.node === this.startAnchor.node) return;
 
-        // Determine start and end points
         let pStart = this.startAnchor.position;
         let pEnd = endAnchor ? endAnchor.position : v;
 
-        // Pull live settings from Sandbox UI
         const settings = this.getSandboxSettings();
 
-        // Calculate cost based on length (simplifying cost for sandbox)
         let totalDist = pStart.distanceTo(pEnd);
         let numSegments = Math.max(1, Math.floor(totalDist / settings.segmentLength));
-        let estimatedCost = numSegments * 5; // Flat cost for sandbox
+        let estimatedCost = numSegments * 5;
 
-        // Callback to level manager to check budget
         let allowed = onBuildCallback(estimatedCost);
 
         if (allowed) {
@@ -112,11 +107,8 @@ class StructureBuilder {
         let prevNode = startAnchor.node;
         let nodesList = [prevNode];
 
-        // Map tensionVal (0.75 to 2.0) directly to Physical Slack
-        // 1.0 = Taut, 2.0 = 200% length (very saggy), 0.75 = 75% length (stretched)
         let slackMultiplier = settings.tension;
 
-        // breakingStrain is used directly from the force-based breaking logic
         let matLayout = { 
             breakingStrain: settings.strength, 
             slackMultiplier: slackMultiplier, 
@@ -154,7 +146,6 @@ class StructureBuilder {
             prevNode = newNode;
         }
 
-        // Add Bending Constraints to limit curvature and prevent sharp corners
         for (let i = 0; i < nodesList.length - 2; i++) {
             let nA = nodesList[i];
             let nB = nodesList[i + 1];
@@ -180,7 +171,6 @@ class StructureBuilder {
         ctx.stroke();
         ctx.setLineDash([]);
 
-        // Highlight snapping
         if (endObj) {
             ctx.beginPath();
             ctx.arc(pEnd.x, pEnd.y, endObj.radius || 5, 0, Math.PI * 2);

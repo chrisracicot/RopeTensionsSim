@@ -22,27 +22,19 @@
             <div id="hud">
                 <h1>Constrained Construction</h1>
                 <div class="controls">
-                    <div class="hud-buttons"
-                        style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px;">
-                        <div style="display: flex; gap: 10px;">
-                            <button id="btn-start" class="btn primary" style="flex: 1;">Start</button>
-                            <button id="btn-stop" class="btn danger" style="flex: 1;">Stop & Reset</button>
+                    <div class="hud-buttons">
+                        <div class="button-row">
+                            <button id="btn-start" class="btn primary">Start</button>
+                            <button id="btn-stop" class="btn danger">Stop & Reset</button>
                         </div>
-                        <button id="btn-drop" style="width: 100%;">Drop Ball</button>
-                        <button id="btn-start-game" class="btn primary" style="width: 100%;" disabled>Start
-                            Scroll</button>
-                        <button id="btn-reset-properties"
-                            style="width: 100%; font-size: 0.85rem; padding: 6px 12px; background-color: #233554; border: 1px solid #64ffda; color: #64ffda;">Reset
-                            Properties</button>
-                        <button id="btn-save-settings"
-                            style="width: 100%; font-size: 0.85rem; padding: 6px 12px; background-color: #112240; border: 1px solid #64ffda; color: #64ffda; margin-top: 4px;">Save
-                            Settings</button>
+                        <button id="btn-drop" class="full-width-btn">Drop Ball</button>
+                        <button id="btn-start-game" class="btn primary full-width-btn" disabled>Start Scroll</button>
+                        <button id="btn-reset-properties" class="btn-secondary full-width-btn">Reset Properties</button>
+                        <button id="btn-save-settings" class="btn-dark-save full-width-btn">Save Settings</button>
                     </div>
 
                     <div class="physics-settings">
-                        <h3
-                            style="font-size: 0.9rem; color: #64ffda; margin-bottom: 5px; border-bottom: 1px solid #3a4b66; padding-bottom: 3px; text-transform: uppercase;">
-                            Global Physics</h3>
+                        <h3 class="setting-title">Global Physics</h3>
                         <div class="setting-item">
                             <label>Rope Gravity: <span id="val-gravity">100%</span></label>
                             <input type="range" id="slider-gravity" min="0" max="10" step="0.01" value="1">
@@ -75,47 +67,24 @@
                             <label>Scroll Speed: <span id="val-scroll-speed">1.0</span></label>
                             <input type="range" id="slider-scroll-speed" min="0" max="5" step="0.1" value="1.0">
                         </div>
-                        <div class="setting-item" style="border-top: 1px solid #3a4b66; padding-top: 5px;">
-                            <label>Live Velocity: <span id="live-velocity" style="color: #64ffda;">0.00</span></label>
+                        <div class="setting-item divider-top">
+                            <label>Live Velocity: <span id="live-velocity" class="label-cyan">0.00</span></label>
                         </div>
                         <div class="setting-item">
-                            <label>Live Mass: <span id="live-mass" style="color: #ff3366;">50.0</span></label>
+                            <label>Live Mass: <span id="live-mass" class="label-pink">50.0</span></label>
                         </div>
-                        <div class="setting-item"
-                            style="flex-direction: row; justify-content: flex-start; align-items: center; gap: 8px; border-top: 1px solid #3a4b66; padding-top: 5px;">
-                            <input type="checkbox" id="checkbox-endless"
-                                style="cursor: pointer; width: auto; margin: 0;" checked>
-                            <label for="checkbox-endless"
-                                style="margin: 0; cursor: pointer; display: inline; color: #64ffda; font-weight: bold;">Endless
-                                Simulation</label>
-                        </div>
-                        <div class="setting-item"
-                            style="flex-direction: row; justify-content: flex-start; align-items: center; gap: 8px; border-top: 1px solid #3a4b66; padding-top: 5px;">
-                            <input type="checkbox" id="checkbox-gravity-mode"
-                                style="cursor: pointer; width: auto; margin: 0;">
-                            <label for="checkbox-gravity-mode"
-                                style="margin: 0; cursor: pointer; display: inline; color: #64ffda; font-weight: bold;">Gravity
-                                Control Mode</label>
-                        </div>
-                        <div class="setting-item" id="item-gravity-type" style="display: none;">
-                            <label for="select-gravity-type">Gravity Type</label>
-                            <select id="select-gravity-type"
-                                style="width: 100%; background-color: #112240; color: #ccd6f6; border: 1px solid #3a4b66; padding: 6px; border-radius: 4px; font-family: inherit; cursor: pointer;">
-                                <option value="vector" selected>Global Vector (Directional)</option>
-                                <option value="attractor">Point Attractor (Click Location)</option>
-                            </select>
+                        <div class="setting-item divider-top setting-row-layout">
+                            <input type="checkbox" id="checkbox-endless" checked>
+                            <label for="checkbox-endless" class="label-cyan">Endless Simulation</label>
                         </div>
                     </div>
 
                     <div class="physics-settings" style="margin-top: 10px;">
-                        <h3
-                            style="font-size: 0.9rem; color: #64ffda; margin-bottom: 5px; border-bottom: 1px solid #3a4b66; padding-bottom: 3px; text-transform: uppercase;">
-                            Sandbox Rope Properties</h3>
+                        <h3 class="setting-title">Sandbox Rope Properties</h3>
 
                         <div class="setting-item">
                             <label for="select-rope-type">Rope Type</label>
-                            <select id="select-rope-type"
-                                style="width: 100%; background-color: #112240; color: #ccd6f6; border: 1px solid #3a4b66; padding: 6px; border-radius: 4px; font-family: inherit; cursor: pointer;">
+                            <select id="select-rope-type" class="dropdown-select">
                                 <option value="twine">Twine (Weak, Saggy, Light)</option>
                                 <option value="rope" selected>Standard Rope (Medium)</option>
                                 <option value="steel">Steel Cable (Strong, Taut, Heavy)</option>
@@ -168,24 +137,8 @@
     </div>
     </div>
 
-    <!-- Physics Core -->
-    <script src="js/physics/Vector2.js?v=17"></script>
-    <script src="js/physics/VerletNode.js?v=17"></script>
-    <script src="js/physics/DistanceConstraint.js?v=17"></script>
-    <script src="js/physics/BendingConstraint.js?v=17"></script>
-    <script src="js/physics/CollisionResolver.js?v=17"></script>
-    <script src="js/physics/VerletEngine.js?v=17"></script>
-
-    <!-- Rendering -->
-    <script src="js/rendering/RopeRenderer.js?v=17"></script>
-
-    <!-- Core Game Logic -->
-    <script src="js/core/WorldAnchor.js?v=17"></script>
-    <script src="js/core/StructureBuilder.js?v=17"></script>
-    <script src="js/core/LevelManager.js?v=17"></script>
-
     <!-- Main Entry -->
-    <script src="js/main.js?v=17"></script>
+    <script type="module" src="js/main.js"></script>
 </body>
 
 </html>

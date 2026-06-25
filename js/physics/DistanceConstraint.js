@@ -1,4 +1,4 @@
-class DistanceConstraint {
+export default class DistanceConstraint {
     constructor(nodeA, nodeB, materialInfo) {
         this.nodeA = nodeA;
         this.nodeB = nodeB;
