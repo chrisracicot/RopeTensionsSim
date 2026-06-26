@@ -8,12 +8,17 @@ public class RopeSystem : MonoBehaviour
     [SerializeField] private float maxRopeLength = 10f;
     [SerializeField] private LayerMask anchorLayer;
     
+    [Header("Elastic Settings")]
+    [SerializeField] private float springFrequency = 2.0f;
+    [SerializeField] private float dampingRatio = 0.5f;
+    [SerializeField] private float tensionMultiplier = 0.5f;
+    
     [Header("Visual Settings")]
     [SerializeField] private Color ropeColor = Color.white;
     [SerializeField] private float ropeWidth = 0.1f;
 
     private Rigidbody2D rb;
-    private DistanceJoint2D joint;
+    private SpringJoint2D joint;
     private LineRenderer lineRenderer;
     private Vector2 ropeAttachedPosition;
     private bool isConnected;
@@ -32,11 +37,11 @@ public class RopeSystem : MonoBehaviour
         lineRenderer.endColor = ropeColor;
         lineRenderer.positionCount = 0;
 
-        // Try to get or add DistanceJoint2D
-        joint = GetComponent<DistanceJoint2D>();
+        // Try to get or add SpringJoint2D
+        joint = GetComponent<SpringJoint2D>();
         if (joint == null)
         {
-            joint = gameObject.AddComponent<DistanceJoint2D>();
+            joint = gameObject.AddComponent<SpringJoint2D>();
         }
         joint.enabled = false;
     }
@@ -100,7 +105,11 @@ public class RopeSystem : MonoBehaviour
 
         joint.enabled = true;
         joint.connectedAnchor = ropeAttachedPosition;
-        joint.distance = Vector2.Distance(transform.position, ropeAttachedPosition);
+        
+        float actualDistance = Vector2.Distance(transform.position, ropeAttachedPosition);
+        joint.distance = actualDistance * tensionMultiplier;
+        joint.frequency = springFrequency;
+        joint.dampingRatio = dampingRatio;
         
         // Match joint properties to desired responsiveness
         joint.enableCollision = true;
