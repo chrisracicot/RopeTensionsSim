@@ -17,6 +17,8 @@ public class RopeBuilder : MonoBehaviour
     [Header("Physics Settings")]
     [SerializeField] private float springFrequency = 10f;
     [SerializeField] private float dampingRatio = 0.5f;
+    [SerializeField] private float linearDrag = 1f;
+    [SerializeField] private float angularDrag = 1f;
 
     private LineRenderer lineRenderer;
     private List<Transform> ropeNodes = new List<Transform>();
@@ -35,6 +37,8 @@ public class RopeBuilder : MonoBehaviour
         {
             lineRenderer.material = new Material(spriteShader);
         }
+
+        Physics2D.IgnoreLayerCollision(gameObject.layer, gameObject.layer, true);
 
         BuildRope();
     }
@@ -77,6 +81,8 @@ public class RopeBuilder : MonoBehaviour
 
             Rigidbody2D rb = segment.AddComponent<Rigidbody2D>();
             rb.mass = segmentMass;
+            rb.linearDamping = linearDrag;
+            rb.angularDamping = angularDrag;
             rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
 
             CapsuleCollider2D col = segment.AddComponent<CapsuleCollider2D>();
@@ -87,7 +93,7 @@ public class RopeBuilder : MonoBehaviour
             SpringJoint2D joint = segment.AddComponent<SpringJoint2D>();
             joint.connectedBody = previousRb;
             joint.autoConfigureDistance = false;
-            joint.distance = stepDistance;
+            joint.distance = stepDistance * 0.9f; // Pre-tensioned by 10% to increase sag by 10%
             joint.frequency = springFrequency;
             joint.dampingRatio = dampingRatio;
             joint.enableCollision = false; // segments don't collide with their immediate neighbors
@@ -107,7 +113,7 @@ public class RopeBuilder : MonoBehaviour
         SpringJoint2D lastJoint = endAnchor.gameObject.AddComponent<SpringJoint2D>();
         lastJoint.connectedBody = previousRb;
         lastJoint.autoConfigureDistance = false;
-        lastJoint.distance = stepDistance;
+        lastJoint.distance = stepDistance * 0.9f; // Pre-tensioned by 10% to increase sag by 10%
         lastJoint.frequency = springFrequency;
         lastJoint.dampingRatio = dampingRatio;
         lastJoint.enableCollision = false;
