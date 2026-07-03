@@ -16,6 +16,9 @@ public class RopeInteractor : MonoBehaviour
     [SerializeField] private Color dragLineColor = new Color(0f, 1f, 1f, 0.5f);
     [SerializeField] private float dragLineWidth = 0.05f;
 
+    [Header("Global Settings Reference")]
+    [SerializeField] private GameSettings settings;
+
     private Camera mainCamera;
     private Rigidbody2D draggedBody;
     private TargetJoint2D targetJoint;
@@ -82,8 +85,9 @@ public class RopeInteractor : MonoBehaviour
 
     private void TryStartDrag(Vector3 screenPos)
     {
+        float actualGrabRadius = settings != null ? settings.grabRadius : grabRadius;
         Vector2 mouseWorldPos = mainCamera.ScreenToWorldPoint(screenPos);
-        Collider2D[] hitColliders = Physics2D.OverlapCircleAll(mouseWorldPos, grabRadius, ropeLayer);
+        Collider2D[] hitColliders = Physics2D.OverlapCircleAll(mouseWorldPos, actualGrabRadius, ropeLayer);
 
         if (hitColliders.Length > 0)
         {
@@ -108,12 +112,16 @@ public class RopeInteractor : MonoBehaviour
                 {
                     initialGrabPoint = closestCollider.ClosestPoint(mouseWorldPos);
                     
+                    float actualMaxForce = settings != null ? settings.grabJointMaxForce : jointMaxForce;
+                    float actualFrequency = settings != null ? settings.grabJointFrequency : jointFrequency;
+                    float actualDamping = settings != null ? settings.grabJointDamping : jointDamping;
+
                     targetJoint = draggedBody.gameObject.AddComponent<TargetJoint2D>();
                     targetJoint.anchor = draggedBody.transform.InverseTransformPoint(initialGrabPoint);
                     targetJoint.target = initialGrabPoint;
-                    targetJoint.maxForce = jointMaxForce;
-                    targetJoint.frequency = jointFrequency;
-                    targetJoint.dampingRatio = jointDamping;
+                    targetJoint.maxForce = actualMaxForce;
+                    targetJoint.frequency = actualFrequency;
+                    targetJoint.dampingRatio = actualDamping;
 
                     dragLineRenderer.positionCount = 2;
                     dragLineRenderer.SetPosition(0, initialGrabPoint);
@@ -128,9 +136,10 @@ public class RopeInteractor : MonoBehaviour
         Vector2 mouseWorldPos = mainCamera.ScreenToWorldPoint(screenPos);
         Vector2 dragVector = mouseWorldPos - initialGrabPoint;
 
-        if (dragVector.magnitude > maxPullDistance)
+        float actualMaxPullDistance = settings != null ? settings.maxPullDistance : maxPullDistance;
+        if (dragVector.magnitude > actualMaxPullDistance)
         {
-            dragVector = dragVector.normalized * maxPullDistance;
+            dragVector = dragVector.normalized * actualMaxPullDistance;
         }
 
         Vector2 targetPos = initialGrabPoint + dragVector;

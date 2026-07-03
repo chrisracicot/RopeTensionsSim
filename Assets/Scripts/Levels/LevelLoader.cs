@@ -12,6 +12,20 @@ public class LevelLoader : MonoBehaviour
     [Tooltip("A prefab containing the RopeBuilder component")]
     public GameObject ropeBuilderPrefab;
 
+    [Header("Global Settings")]
+    public GameSettings gameSettings;
+
+    private void Awake()
+    {
+        if (gameSettings != null)
+        {
+            Physics2D.gravity = gameSettings.globalGravity;
+            Time.fixedDeltaTime = gameSettings.fixedDeltaTime;
+            Physics2D.velocityIterations = gameSettings.velocityIterations;
+            Physics2D.positionIterations = gameSettings.positionIterations;
+        }
+    }
+
     private void Start()
     {
         if (levelToLoad != null)

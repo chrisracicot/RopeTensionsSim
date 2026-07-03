@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7547aa0b6c34fca40b1a07b5b738aab1, type: 3}
+  m_Name: GameSettings
+  m_EditorClassIdentifier: Assembly-CSharp::GameSettings
+  globalGravity: {x: 0, y: -12.753}
+  fixedDeltaTime: 0.005
+  velocityIterations: 50
+  positionIterations: 50
+  maxPullDistance: 5
+  grabRadius: 2
+  grabJointFrequency: 15
+  grabJointDamping: 1
+  grabJointMaxForce: 50000
