@@ -38,7 +38,16 @@ public class RopeBuilder : MonoBehaviour
             lineRenderer.material = new Material(spriteShader);
         }
 
-        Physics2D.IgnoreLayerCollision(gameObject.layer, gameObject.layer, true);
+        int ropeLayer = LayerMask.NameToLayer("Rope");
+        if (ropeLayer != -1)
+        {
+            gameObject.layer = ropeLayer;
+            Physics2D.IgnoreLayerCollision(ropeLayer, ropeLayer, true);
+        }
+        else
+        {
+            Debug.LogWarning("Layer 'Rope' does not exist in Project Settings! Please add a 'Rope' layer in Tags and Layers. Falling back to default physics (segments may collide with themselves).");
+        }
 
         BuildRope();
     }
@@ -87,13 +96,13 @@ public class RopeBuilder : MonoBehaviour
 
             CapsuleCollider2D col = segment.AddComponent<CapsuleCollider2D>();
             col.direction = CapsuleDirection2D.Horizontal;
-            // Make the capsule slightly longer than the step distance so they overlap and leave no gaps
-            col.size = new Vector2(stepDistance * 1.5f, ropeWidth);
+            // Make the capsule 2.5x the step distance so they safely overlap even under extreme tension
+            col.size = new Vector2(stepDistance * 2.5f, ropeWidth);
 
             SpringJoint2D joint = segment.AddComponent<SpringJoint2D>();
             joint.connectedBody = previousRb;
             joint.autoConfigureDistance = false;
-            joint.distance = stepDistance * 0.9f; // Pre-tensioned by 10% to increase sag by 10%
+            joint.distance = stepDistance * 1.0f; // No pre-tensioning to prevent micro-wiggles
             joint.frequency = springFrequency;
             joint.dampingRatio = dampingRatio;
             joint.enableCollision = false; // segments don't collide with their immediate neighbors
@@ -113,7 +122,7 @@ public class RopeBuilder : MonoBehaviour
         SpringJoint2D lastJoint = endAnchor.gameObject.AddComponent<SpringJoint2D>();
         lastJoint.connectedBody = previousRb;
         lastJoint.autoConfigureDistance = false;
-        lastJoint.distance = stepDistance * 0.9f; // Pre-tensioned by 10% to increase sag by 10%
+        lastJoint.distance = stepDistance * 1.0f; // No pre-tensioning to prevent micro-wiggles
         lastJoint.frequency = springFrequency;
         lastJoint.dampingRatio = dampingRatio;
         lastJoint.enableCollision = false;

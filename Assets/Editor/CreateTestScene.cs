@@ -24,6 +24,7 @@ public class CreateTestScene : EditorWindow
         Physics2D.velocityIterations = 50;
         Physics2D.positionIterations = 50;
         Time.fixedDeltaTime = 0.005f; // 200Hz fixed update for extreme spring stability
+        Physics2D.gravity = new Vector2(0, -12.753f); // Increased gravity by 30% (9.81 * 1.3)
 
         // Ensure Rope layer exists and get its index
         int ropeLayerIndex = AddLayer("Rope");
@@ -66,11 +67,11 @@ public class CreateTestScene : EditorWindow
         // Configure some default elastic settings on the RopeBuilder
         SerializedObject soRope = new SerializedObject(ropeBuilder);
         soRope.FindProperty("segmentCount").intValue = 30; // More segments for a smoother rope
-        soRope.FindProperty("segmentMass").floatValue = 0.1f; // Lighter segments to reduce sag
-        soRope.FindProperty("springFrequency").floatValue = 30f; // Tuned spring frequency to avoid Nyquist limits and reduce jitter
-        soRope.FindProperty("dampingRatio").floatValue = 1.0f; // Critically damp the springs to kill all jitter
-        soRope.FindProperty("linearDrag").floatValue = 2.25f; // Increased by 50% (was 1.5f)
-        soRope.FindProperty("angularDrag").floatValue = 2.25f; // Increased by 50% (was 1.5f)
+        soRope.FindProperty("segmentMass").floatValue = 0.5f; // Increased for better stability with ball
+        soRope.FindProperty("springFrequency").floatValue = 25f; // Higher frequency for quicker snapback
+        soRope.FindProperty("dampingRatio").floatValue = 0.7f; // Dampened oscillations to kill wiggling
+        soRope.FindProperty("linearDrag").floatValue = 1.5f; // Added drag to bleed off energy
+        soRope.FindProperty("angularDrag").floatValue = 1.5f;
         soRope.ApplyModifiedProperties();
 
         // 4. Create Player (The Ball)

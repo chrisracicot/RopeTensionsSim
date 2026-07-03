@@ -7,9 +7,10 @@ public class RopeInteractor : MonoBehaviour
 
     [Header("Interaction Settings")]
     [SerializeField] private float maxPullDistance = 5f;
+    [SerializeField] private float grabRadius = 2.0f;
     [SerializeField] private float jointFrequency = 15f;
     [SerializeField] private float jointDamping = 1f;
-    [SerializeField] private float jointMaxForce = 10000f;
+    [SerializeField] private float jointMaxForce = 50000f; // Increased for a stronger pull
 
     [Header("Visual Settings")]
     [SerializeField] private Color dragLineColor = new Color(0f, 1f, 1f, 0.5f);
@@ -44,49 +45,87 @@ public class RopeInteractor : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetMouseButtonDown(0))
+        bool isPointerDown = false;
+        bool isPointerHeld = false;
+        bool isPointerUp = false;
+        Vector3 pointerPos = Input.mousePosition;
+
+        if (Input.touchCount > 0)
         {
-            TryStartDrag();
+            Touch touch = Input.GetTouch(0);
+            pointerPos = touch.position;
+            
+            if (touch.phase == TouchPhase.Began) isPointerDown = true;
+            else if (touch.phase == TouchPhase.Moved || touch.phase == TouchPhase.Stationary) isPointerHeld = true;
+            else if (touch.phase == TouchPhase.Ended || touch.phase == TouchPhase.Canceled) isPointerUp = true;
         }
-        else if (Input.GetMouseButton(0) && draggedBody != null)
+        else
         {
-            UpdateDrag();
+            isPointerDown = Input.GetMouseButtonDown(0);
+            isPointerHeld = Input.GetMouseButton(0);
+            isPointerUp = Input.GetMouseButtonUp(0);
         }
-        else if (Input.GetMouseButtonUp(0) && draggedBody != null)
+
+        if (isPointerDown)
+        {
+            TryStartDrag(pointerPos);
+        }
+        else if (isPointerHeld && draggedBody != null)
+        {
+            UpdateDrag(pointerPos);
+        }
+        else if (isPointerUp && draggedBody != null)
         {
             StopDrag();
         }
     }
 
-    private void TryStartDrag()
+    private void TryStartDrag(Vector3 screenPos)
     {
-        Vector2 mouseWorldPos = mainCamera.ScreenToWorldPoint(Input.mousePosition);
-        RaycastHit2D hit = Physics2D.Raycast(mouseWorldPos, Vector2.zero, Mathf.Infinity, ropeLayer);
+        Vector2 mouseWorldPos = mainCamera.ScreenToWorldPoint(screenPos);
+        Collider2D[] hitColliders = Physics2D.OverlapCircleAll(mouseWorldPos, grabRadius, ropeLayer);
 
-        if (hit.collider != null)
+        if (hitColliders.Length > 0)
         {
-            draggedBody = hit.collider.GetComponent<Rigidbody2D>();
-            if (draggedBody != null)
-            {
-                initialGrabPoint = hit.point;
-                
-                targetJoint = draggedBody.gameObject.AddComponent<TargetJoint2D>();
-                targetJoint.anchor = draggedBody.transform.InverseTransformPoint(initialGrabPoint);
-                targetJoint.target = initialGrabPoint;
-                targetJoint.maxForce = jointMaxForce;
-                targetJoint.frequency = jointFrequency;
-                targetJoint.dampingRatio = jointDamping;
+            Collider2D closestCollider = null;
+            float minDistance = Mathf.Infinity;
 
-                dragLineRenderer.positionCount = 2;
-                dragLineRenderer.SetPosition(0, initialGrabPoint);
-                dragLineRenderer.SetPosition(1, initialGrabPoint);
+            foreach (var col in hitColliders)
+            {
+                Vector2 closestPoint = col.ClosestPoint(mouseWorldPos);
+                float distance = Vector2.Distance(mouseWorldPos, closestPoint);
+                if (distance < minDistance)
+                {
+                    minDistance = distance;
+                    closestCollider = col;
+                }
+            }
+
+            if (closestCollider != null)
+            {
+                draggedBody = closestCollider.GetComponent<Rigidbody2D>();
+                if (draggedBody != null)
+                {
+                    initialGrabPoint = closestCollider.ClosestPoint(mouseWorldPos);
+                    
+                    targetJoint = draggedBody.gameObject.AddComponent<TargetJoint2D>();
+                    targetJoint.anchor = draggedBody.transform.InverseTransformPoint(initialGrabPoint);
+                    targetJoint.target = initialGrabPoint;
+                    targetJoint.maxForce = jointMaxForce;
+                    targetJoint.frequency = jointFrequency;
+                    targetJoint.dampingRatio = jointDamping;
+
+                    dragLineRenderer.positionCount = 2;
+                    dragLineRenderer.SetPosition(0, initialGrabPoint);
+                    dragLineRenderer.SetPosition(1, initialGrabPoint);
+                }
             }
         }
     }
 
-    private void UpdateDrag()
+    private void UpdateDrag(Vector3 screenPos)
     {
-        Vector2 mouseWorldPos = mainCamera.ScreenToWorldPoint(Input.mousePosition);
+        Vector2 mouseWorldPos = mainCamera.ScreenToWorldPoint(screenPos);
         Vector2 dragVector = mouseWorldPos - initialGrabPoint;
 
         if (dragVector.magnitude > maxPullDistance)
